@@ -99,18 +99,21 @@ hotels, and event spaces.
 
 ### Prerequisites
 
-- Node.js (v14 or higher)
+- Node.js (v20 or higher)
 - npm or yarn
-- PostgreSQL (v12 or higher)
+- PostgreSQL database (local or cloud-hosted)
 
 ### Installation
 
-1. **Clone the repository**
+1. **Clone the repository and switch to development branch**
 
    ```bash
-   git clone <repository-url>
+   git clone https://github.com/One-Marvellous/Property-Rental-Management-System.git
    cd property-rental-management-system
+   git checkout development
    ```
+
+   > **Note**: All feature branches should be created from the `development` branch. The `main` branch is reserved for production releases.
 
 2. **Install dependencies**
 
@@ -118,100 +121,84 @@ hotels, and event spaces.
    npm i
    ```
 
-3. **Create the database**
+3. **Set up your PostgreSQL database**
 
-   You can create the database using one of the following methods:
+   Choose one of the following options:
 
-   **Option A: Using createdb command (PostgreSQL CLI utility)**
+   #### Option A: Local PostgreSQL (Recommended for Development)
+
+   If you have PostgreSQL installed locally:
 
    ```bash
-   createdb -U postgres pms
+   createdb -U postgres prm
    ```
 
    Or if your PostgreSQL user is different:
 
    ```bash
-   createdb -U <your-username> pms
+   createdb -U <your-username> prm
    ```
 
-   > **Note**: The `createdb` command must be run from your terminal/command prompt and requires PostgreSQL to be installed and accessible from your PATH.
+   > **Note**: The `createdb` command must be in your PATH. If unavailable, use psql instead:
+   >
+   > ```bash
+   > psql -U postgres -c "CREATE DATABASE prm;"
+   > ```
 
-   **Option B: Using psql (Interactive PostgreSQL Shell)**
+   #### Option B: Cloud PostgreSQL with Render
 
-   If `createdb` is not available or you prefer using psql:
+   For a free or paid managed PostgreSQL instance:
+   1. Go to [Render Dashboard](https://dashboard.render.com/new/database)
+   2. Click **+ New** → **Postgres**
+   3. Fill in the database name (e.g., `prm`)
+   4. Choose your preferred region
+   5. Select instance type (Free tier available)
+   6. Click **Create Database**
+   7. Copy the **External Connection String** (format: `postgresql://user:password@host:port/database`)
+   8. Save it for the **Configure environment variables** step below
 
-   ```bash
-   psql -U postgres -c "CREATE DATABASE pms;"
-   ```
+   #### Option C: Cloud PostgreSQL with Neon
 
-   Or interactively:
-
-   ```bash
-   psql -U postgres
-   # Inside psql prompt (you'll see postgres=#):
-   CREATE DATABASE pms;
-   \q
-   ```
+   For a fast serverless PostgreSQL database:
+   1. Sign up at [Neon](https://neon.tech/)
+   2. Create a new project
+   3. A database named `neondb` will be created automatically
+   4. Copy the **Connection String** from the Connection Details panel
+   5. Save it for the **Configure environment variables** step below
 
 4. **Initialize the database schema**
 
-   Execute the SQL script from `scripts/pms.sql` to create all tables, enums, and indexes.
+   Execute the SQL script from `scripts/prm.sql` to create all tables, enums, and indexes.
 
-   Choose one of the following methods:
-
-   **Option A: Local PostgreSQL (Default)**
-
-   If PostgreSQL is running locally with default settings:
+   ##### For Local PostgreSQL:
 
    ```bash
-   psql -U postgres -d pms -f scripts/pms.sql
+   psql -U postgres -d prm -f scripts/prm.sql
    ```
 
    Or if your PostgreSQL user is different:
 
    ```bash
-   psql -U <your-username> -d pms -f scripts/pms.sql
+   psql -U <your-username> -d prm -f scripts/prm.sql
    ```
 
-   **Option B: Remote PostgreSQL Database**
+   ##### For Cloud PostgreSQL (Render or Neon):
 
-   For a remote PostgreSQL server:
+   Use your connection string directly:
 
    ```bash
-   psql -h <your-host> -U <your-username> -d pms -p <port> -f scripts/pms.sql
+   psql "postgresql://user:password@host:port/database" -f scripts/prm.sql
    ```
 
-   Example:
+   Or run interactively in psql:
 
    ```bash
-   psql -h db.example.com -U admin -d pms -p 5432 -f scripts/pms.sql
-   ```
-
-   **Option C: Using Connection String**
-
-   Using a full PostgreSQL connection string:
-
-   ```bash
-   psql postgresql://<user>:<password>@<host>:<port>/pms -f scripts/pms.sql
-   ```
-
-   Example:
-
-   ```bash
-   psql postgresql://admin:password123@db.example.com:5432/pms -f scripts/pms.sql
-   ```
-
-   **Option D: Interactive psql Shell**
-
-   You can also run the SQL script manually inside psql:
-
-   ```bash
-   psql -U postgres -d pms
+   psql "postgresql://user:password@host:port/database"
    # Inside psql prompt:
-   \i scripts/pms.sql
+   \i scripts/prm.sql
    ```
 
-   > **Note**: Replace `<your-username>`, `<your-host>`, and `<port>` with your actual PostgreSQL credentials and server details.
+   > **Alternative**: Let Prisma handle schema initialization. After setting `DATABASE_URL` in `.env`, Prisma will introspect and pull the schema (steps 5-6 below).
 
 5. **Pull database schema into Prisma**
 
@@ -234,17 +221,31 @@ hotels, and event spaces.
      ```bash
      cp .env.sample .env
      ```
-   - Update `.env` with your configuration:
+   - Update `.env` with your database connection:
+
+     **For Local PostgreSQL:**
+
      ```env
      PORT=3000
-     DATABASE_URL=postgresql://user:password@localhost:5432/pms
+     DATABASE_URL=postgresql://postgres:password@localhost:5432/prm
+     NODE_ENV=development
+     ```
+
+     **For Cloud PostgreSQL (Render or Neon):**
+
+     ```env
+     PORT=3000
+     DATABASE_URL=postgresql://user:password@host:port/database
      NODE_ENV=development
      ```
 
 8. **Run the application**
+
    ```bash
    npm run dev
    ```
+
+   The server will start on `http://localhost:3000` (or the port specified in `.env`)
 
 ## Database Schema
 
@@ -292,7 +293,7 @@ npm run format:check
 ├── prisma/
 │   └── schema.prisma    # Prisma ORM schema
 ├── scripts/
-│   └── pms.sql          # PostgreSQL database schema
+│   └── prm.sql          # PostgreSQL database schema
 ├── docs/                # Documentation
 ├── .env.sample          # Environment variables template
 ├── .env                 # Environment variables
@@ -318,6 +319,7 @@ npm run format:check
 ```bash
 # Before pushing changes, format your code
 npm run format
+npm run lint
 
 # Stage and commit your changes
 git add .
@@ -333,9 +335,9 @@ Full API documentation and additional setup guides are available in:
 
 - `/docs` folder
 - Check [project documentation site](https://www.postman.com/one-marvellous/property-management-system) for detailed API endpoints
-- Database schema diagram is available in `scripts/pms.sql`
+- Database schema diagram is available in `scripts/prm.sql`
 
-For detailed information on the database structure, refer to the SQL schema file at `scripts/pms.sql`.
+For detailed information on the database structure, refer to the SQL schema file at `scripts/prm.sql`.
 
 ## Troubleshooting
 
@@ -343,7 +345,7 @@ For detailed information on the database structure, refer to the SQL schema file
 
 - Verify PostgreSQL is running
 - Check `DATABASE_URL` in `.env` matches your setup
-- Ensure the `pms` database exists
+- Ensure the `prm` database exists
 
 **Port already in use:**
 
