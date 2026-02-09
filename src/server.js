@@ -18,6 +18,9 @@ const app = express();
 
 const PORT = ENV.PORT;
 
+// Declare server variable
+let server;
+
 // ==============================
 // API Routes
 // ==============================
@@ -41,7 +44,7 @@ app.get('/api/v1/health', (req, res) => {
 // ==============================
 // Start Server
 // ==============================
-app.listen(PORT, () => {
+server = app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
 });
 

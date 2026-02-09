@@ -30,6 +30,9 @@ jobs:
       - name: Prettier formatting check
         run: npm run format:check
 
+      - name: Run ESLint
+        run: npm run lint
+
       - name: Generate Prisma client
         run: npx prisma generate
 
