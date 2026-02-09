@@ -1,0 +1,40 @@
+name: Backend CI
+
+on:
+  push:
+    branches: [main, development]
+  pull_request:
+    branches: [main, development]
+
+jobs:
+  ci:
+    name: CI
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        node-version: [20.x]
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Use Node.js ${{ matrix.node-version }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prettier formatting check
+        run: npm run format:check
+
+      - name: Run ESLint
+        run: npm run lint
+
+      - name: Generate Prisma client
+        run: npx prisma generate
+
+      - name: List project files
+        run: ls -la
