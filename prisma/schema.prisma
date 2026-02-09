@@ -26,7 +26,7 @@ model bookings {
 
 model categories {
   id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name        String       @db.VarChar
+  name        String       @unique @db.VarChar
   description String?
   properties  properties[]
 }
@@ -36,8 +36,8 @@ model payments {
   id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   rental_id             String           @db.Uuid
   amount                Decimal          @db.Decimal(12, 2)
-  category              payment_category @default(rent)
-  payment_method        String           @db.VarChar
+  category              payment_category
+  payment_method        String?          @db.VarChar
   payment_status        payment_status
   transaction_reference String?          @unique @db.VarChar
   paid_at               DateTime?        @db.Timestamp(6)
@@ -49,23 +49,28 @@ model payments {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model properties {
-  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  title           String            @db.VarChar
-  description     String?
-  address         String            @db.VarChar
-  city            String            @db.VarChar
-  state           String            @db.VarChar
-  pricing_unit    pricing_unit
-  base_price      Decimal           @db.Decimal(12, 2)
-  status          property_status   @default(available)
-  category_id     String?           @db.Uuid
-  manager_id      String            @db.Uuid
-  created_at      DateTime          @default(now()) @db.Timestamp(6)
-  bookings        bookings[]
-  categories      categories?       @relation(fields: [category_id], references: [id], onUpdate: NoAction)
-  users           users             @relation(fields: [manager_id], references: [id], onUpdate: NoAction)
-  property_images property_images[]
-  rentals         rentals[]
+  id                                  String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title                               String                       @db.VarChar
+  description                         String?
+  address                             String                       @db.VarChar
+  city                                String                       @db.VarChar
+  state                               String                       @db.VarChar
+  pricing_unit                        pricing_unit
+  base_price                          Decimal                      @db.Decimal(12, 2)
+  approval_status                     property_approval_status     @default(draft)
+  availability_status                 property_availability_status @default(available)
+  category_id                         String?                      @db.Uuid
+  manager_id                          String                       @db.Uuid
+  approved_by                         String?                      @db.Uuid
+  approved_at                         DateTime?                    @db.Timestamp(6)
+  rejection_reason                    String?
+  created_at                          DateTime                     @default(now()) @db.Timestamp(6)
+  bookings                            bookings[]
+  users_properties_approved_byTousers users?                       @relation("properties_approved_byTousers", fields: [approved_by], references: [id], onUpdate: NoAction)
+  categories                          categories?                  @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  users                               users                        @relation(fields: [manager_id], references: [id], onUpdate: NoAction)
+  property_images                     property_images[]
+  rentals                             rentals[]
 }
 
 model property_images {
@@ -79,6 +84,7 @@ model property_images {
 model property_manager_applications {
   id                                                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   user_id                                                String                     @db.Uuid
+  reason                                                 String
   status                                                 manager_application_status @default(pending)
   reviewed_by                                            String?                    @db.Uuid
   reviewed_at                                            DateTime?                  @db.Timestamp(6)
@@ -135,8 +141,10 @@ model users {
   email                                                                          String                          @unique @db.VarChar
   password_hash                                                                  String                          @db.VarChar
   phone_number                                                                   String?                         @db.VarChar
+  is_suspended                                                                   Boolean                         @default(false)
   created_at                                                                     DateTime                        @default(now()) @db.Timestamp(6)
   bookings                                                                       bookings[]
+  properties_properties_approved_byTousers                                       properties[]                    @relation("properties_approved_byTousers")
   properties                                                                     properties[]
   property_manager_applications_property_manager_applications_reviewed_byTousers property_manager_applications[] @relation("property_manager_applications_reviewed_byTousers")
   property_manager_applications_property_manager_applications_user_idTousers     property_manager_applications[] @relation("property_manager_applications_user_idTousers")
@@ -157,14 +165,14 @@ enum manager_application_status {
   pending
   approved
   rejected
+  cancelled
 }
 
 enum payment_category {
-  rent
   deposit
-  late_fee
-  service_fee
-  other
+  full_payment
+  part_payment
+  monthly
 }
 
 enum payment_status {
@@ -181,14 +189,22 @@ enum pricing_unit {
   event
 }
 
-enum property_status {
-  available
-  occupied
-  maintenance
-}
-
 enum rental_status {
   active
   completed
   terminated
+}
+
+enum property_approval_status {
+  draft
+  pending
+  approved
+  rejected
+  suspended
+}
+
+enum property_availability_status {
+  available
+  occupied
+  maintenance
 }
