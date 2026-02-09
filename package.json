@@ -1,0 +1,37 @@
+{
+  "name": "property-rental-management-system",
+  "version": "1.0.0",
+  "description": "API's for property management system for admin, user and property managers",
+  "main": "src/server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "npm i && npx prisma db pull && npx prisma generate",
+    "dev": "node --watch src/server.js",
+    "start": "node src/server.js",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  },
+  "engines": {
+    "node": ">20.0.0"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "module",
+  "dependencies": {
+    "@prisma/adapter-pg": "^7.3.0",
+    "@prisma/client": "^7.3.0",
+    "bcrypt": "^6.0.0",
+    "dotenv": "^17.2.4",
+    "express": "^5.2.1",
+    "jsonwebtoken": "^9.0.3",
+    "pg": "^8.18.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/node": "^25.2.2",
+    "@types/pg": "^8.16.0",
+    "prettier": "^3.8.1",
+    "prisma": "^7.3.0"
+  }
+}

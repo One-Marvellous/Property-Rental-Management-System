@@ -1,0 +1,44 @@
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+package-lock.json
+yarn.lock
+
+# IDE & Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+*.sublime-project
+*.sublime-workspace
+
+# Build & Output
+dist/
+build/
+.next/
+out/
+*.log
+logs/
+
+# Runtime
+tmp/
+temp/
+cache/
+
+# Testing
+coverage/
+.nyc_output/
+
+# OS
+Thumbs.db
+.env.backup
+*.pem
+
+# Generated prisma files
+/src/generated/prisma

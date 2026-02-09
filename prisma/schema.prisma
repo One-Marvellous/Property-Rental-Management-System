@@ -1,0 +1,194 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model bookings {
+  id                  String         @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id             String         @db.Uuid
+  property_id         String         @db.Uuid
+  start_date          DateTime       @db.Date
+  end_date            DateTime       @db.Date
+  proposed_amount     Decimal?       @db.Decimal(12, 2)
+  status              booking_status @default(pending)
+  cancelled_at        DateTime?      @db.Timestamp(6)
+  cancellation_reason String?
+  created_at          DateTime       @default(now()) @db.Timestamp(6)
+  properties          properties     @relation(fields: [property_id], references: [id], onUpdate: NoAction)
+  users               users          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+  rentals             rentals?
+}
+
+model categories {
+  id          String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String       @db.VarChar
+  description String?
+  properties  properties[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payments {
+  id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rental_id             String           @db.Uuid
+  amount                Decimal          @db.Decimal(12, 2)
+  category              payment_category @default(rent)
+  payment_method        String           @db.VarChar
+  payment_status        payment_status
+  transaction_reference String?          @unique @db.VarChar
+  paid_at               DateTime?        @db.Timestamp(6)
+  created_at            DateTime         @default(now()) @db.Timestamp(6)
+  rentals               rentals          @relation(fields: [rental_id], references: [id], onUpdate: NoAction)
+
+  @@index([rental_id], map: "idx_payments_rental_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model properties {
+  id              String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  title           String            @db.VarChar
+  description     String?
+  address         String            @db.VarChar
+  city            String            @db.VarChar
+  state           String            @db.VarChar
+  pricing_unit    pricing_unit
+  base_price      Decimal           @db.Decimal(12, 2)
+  status          property_status   @default(available)
+  category_id     String?           @db.Uuid
+  manager_id      String            @db.Uuid
+  created_at      DateTime          @default(now()) @db.Timestamp(6)
+  bookings        bookings[]
+  categories      categories?       @relation(fields: [category_id], references: [id], onUpdate: NoAction)
+  users           users             @relation(fields: [manager_id], references: [id], onUpdate: NoAction)
+  property_images property_images[]
+  rentals         rentals[]
+}
+
+model property_images {
+  id          String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  property_id String     @db.Uuid
+  image_url   String     @db.VarChar
+  created_at  DateTime   @default(now()) @db.Timestamp(6)
+  properties  properties @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+model property_manager_applications {
+  id                                                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                String                     @db.Uuid
+  status                                                 manager_application_status @default(pending)
+  reviewed_by                                            String?                    @db.Uuid
+  reviewed_at                                            DateTime?                  @db.Timestamp(6)
+  created_at                                             DateTime                   @default(now()) @db.Timestamp(6)
+  users_property_manager_applications_reviewed_byTousers users?                     @relation("property_manager_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
+  users_property_manager_applications_user_idTousers     users                      @relation("property_manager_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model rentals {
+  id           String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  booking_id   String        @unique @db.Uuid
+  user_id      String        @db.Uuid
+  property_id  String        @db.Uuid
+  lease_start  DateTime      @db.Date
+  lease_end    DateTime      @db.Date
+  pricing_unit pricing_unit
+  agreed_price Decimal       @db.Decimal(12, 2)
+  status       rental_status @default(active)
+  created_at   DateTime      @default(now()) @db.Timestamp(6)
+  payments     payments[]
+  bookings     bookings      @relation(fields: [booking_id], references: [id], onUpdate: NoAction)
+  properties   properties    @relation(fields: [property_id], references: [id], onUpdate: NoAction)
+  users        users         @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+}
+
+model roles {
+  id         String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name       String       @unique @db.VarChar
+  user_roles user_roles[]
+}
+
+model user_roles {
+  id                                  String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                             String    @db.Uuid
+  role_id                             String    @db.Uuid
+  assigned_by                         String?   @db.Uuid
+  assigned_at                         DateTime  @default(now()) @db.Timestamp(6)
+  revoked_by                          String?   @db.Uuid
+  revoked_at                          DateTime? @db.Timestamp(6)
+  created_at                          DateTime  @default(now()) @db.Timestamp(6)
+  users_user_roles_assigned_byTousers users?    @relation("user_roles_assigned_byTousers", fields: [assigned_by], references: [id], onUpdate: NoAction)
+  users_user_roles_revoked_byTousers  users?    @relation("user_roles_revoked_byTousers", fields: [revoked_by], references: [id], onUpdate: NoAction)
+  roles                               roles     @relation(fields: [role_id], references: [id], onUpdate: NoAction)
+  users_user_roles_user_idTousers     users     @relation("user_roles_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@unique([user_id, role_id, revoked_at])
+}
+
+model users {
+  id                                                                             String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  first_name                                                                     String                          @db.VarChar
+  last_name                                                                      String                          @db.VarChar
+  email                                                                          String                          @unique @db.VarChar
+  password_hash                                                                  String                          @db.VarChar
+  phone_number                                                                   String?                         @db.VarChar
+  created_at                                                                     DateTime                        @default(now()) @db.Timestamp(6)
+  bookings                                                                       bookings[]
+  properties                                                                     properties[]
+  property_manager_applications_property_manager_applications_reviewed_byTousers property_manager_applications[] @relation("property_manager_applications_reviewed_byTousers")
+  property_manager_applications_property_manager_applications_user_idTousers     property_manager_applications[] @relation("property_manager_applications_user_idTousers")
+  rentals                                                                        rentals[]
+  user_roles_user_roles_assigned_byTousers                                       user_roles[]                    @relation("user_roles_assigned_byTousers")
+  user_roles_user_roles_revoked_byTousers                                        user_roles[]                    @relation("user_roles_revoked_byTousers")
+  user_roles_user_roles_user_idTousers                                           user_roles[]                    @relation("user_roles_user_idTousers")
+}
+
+enum booking_status {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+enum manager_application_status {
+  pending
+  approved
+  rejected
+}
+
+enum payment_category {
+  rent
+  deposit
+  late_fee
+  service_fee
+  other
+}
+
+enum payment_status {
+  pending
+  successful
+  failed
+  refunded
+}
+
+enum pricing_unit {
+  month
+  night
+  day
+  event
+}
+
+enum property_status {
+  available
+  occupied
+  maintenance
+}
+
+enum rental_status {
+  active
+  completed
+  terminated
+}
