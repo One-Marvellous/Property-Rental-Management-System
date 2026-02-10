@@ -24,10 +24,7 @@ class AuthService {
     });
 
     if (!defaultRole) {
-      throw new ApiError(
-        500,
-        'Default role not found.'
-      );
+      throw new ApiError(500, 'Default role not found.');
     }
 
     const newUser = await prisma.$transaction(async (tx) => {
