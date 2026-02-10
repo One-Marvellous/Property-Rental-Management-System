@@ -6,9 +6,15 @@ import { UserRole } from '../models/roles.js';
 import { resolveUserRole } from '../utils/resolveUserRole.js';
 
 class AuthService {
+  /**
+   * Register a new user and assign default role
+   * @param {object} userData
+   */
   async registerUser(userData) {
     const { email, password, firstName, lastName, phoneNumber } = userData;
-
+    /**
+     * 1. Check if user already exists
+     */
     const existingUser = await prisma.users.findUnique({
       where: { email },
     });
@@ -17,16 +23,30 @@ class AuthService {
       throw new ApiError(409, 'Email already registered');
     }
 
+    /**
+     * 2. Hash password
+     */
+
     const passwordHash = await bcrypt.hash(password, 10);
+
+    /**
+     * 3. Get default role ("user")
+     */
 
     const defaultRole = await prisma.roles.findUnique({
       where: { name: UserRole.USER },
     });
 
     if (!defaultRole) {
-      throw new ApiError(500, 'Default role not found.');
+      throw new ApiError(
+        500,
+        'Default role not found. Run role seeder before registering users.'
+      );
     }
 
+    /**
+     * 4. Create user + assign role (transaction for safety)
+     */
     const newUser = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.users.create({
         data: {
@@ -53,6 +73,9 @@ class AuthService {
       activeRole: UserRole.USER,
     });
 
+    /**
+     * 5. Return sanitized response
+     */
     return {
       user: {
         userId: newUser.id,
@@ -68,38 +91,69 @@ class AuthService {
     };
   }
 
+  /**
+   * Authenticate user and generate JWT tokens
+   * @param {string} email
+   * @param {string} password
+   * @returns {Promise<object>}
+   */
   async loginUser(email, password) {
+    /**
+     * 1. Find user by email and include active roles
+     */
     const user = await prisma.users.findUnique({
       where: { email },
       include: {
-        user_roles: {
-          where: { revoked_at: null },
+        user_roles_user_roles_user_idTousers: {
+          where: { revoked_at: null }, // only active roles
           include: { roles: true },
         },
       },
     });
 
+    /**
+     * If user does not exist → invalid credentials
+     * (Avoid revealing whether email exists for security)
+     */
     if (!user) {
       throw new ApiError(401, 'Invalid credentials');
     }
 
+    /**
+     * If user is suspended due to malicious activity → account suspended
+     */
     if (user.is_suspended) {
       throw new ApiError(403, 'Account suspended');
     }
 
+    /**
+     * 2. Verify password hash
+     */
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
     if (!isValidPassword) {
       throw new ApiError(401, 'Invalid credentials');
     }
 
-    const roleNames = user.user_roles.map((ur) => ur.roles.name);
+    /**
+     * 3. Resolve active role from user's roles
+     */
+    const roleNames = user.user_roles_user_roles_user_idTousers.map(
+      (ur) => ur.roles.name
+    );
     const activeRole = resolveUserRole(roleNames);
 
+    /**
+     * 4. Generate access & refresh tokens
+     */
     const tokens = jwt.create({
       userId: user.id,
       activeRole: activeRole,
     });
+
+    /**
+     * 5. Return sanitized user data + tokens
+     */
 
     return {
       user: {
@@ -116,6 +170,10 @@ class AuthService {
     };
   }
 
+  /**
+   * Refreshes user Token
+   * @param {string} refreshToken
+   */
   async refreshTokens(refreshToken) {
     try {
       const newTokens = await jwt.refresh(refreshToken);
