@@ -20,6 +20,7 @@
   "license": "ISC",
   "type": "module",
   "dependencies": {
+    "@dax-side/jwt-abstraction": "^0.2.5",
     "@prisma/adapter-pg": "^7.3.0",
     "@prisma/client": "^7.3.0",
     "bcrypt": "^6.0.0",
