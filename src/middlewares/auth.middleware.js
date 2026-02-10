@@ -6,6 +6,9 @@ import {
 
 export const authenticate = jwt.protect();
 
+/**
+ * Verify access token and attach user to request
+ */
 export const authenticateWithCustomErrors = async (req, res, next) => {
   try {
     const authHeader = req.headers.authorization;
@@ -17,13 +20,12 @@ export const authenticateWithCustomErrors = async (req, res, next) => {
     }
 
     const token = authHeader.split(' ')[1];
-
     const payload = await jwt.verify(token);
 
     req.user = payload;
-
     next();
   } catch (error) {
+    // Handle known auth errors
     if (error instanceof TokenExpiredError) {
       return res.status(401).json({
         error: 'Token expired',
@@ -38,13 +40,15 @@ export const authenticateWithCustomErrors = async (req, res, next) => {
       });
     }
 
-    return res.status(401).json({
-      error: 'Authentication failed',
-    });
+    next(error);
   }
 };
 
-export const requireRole = (...allowedRoles) => {
+/**
+ * Restrict access to specific roles
+ * @param  {...string} allowedRoles
+ */
+export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({

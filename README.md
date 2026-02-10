@@ -85,7 +85,7 @@ hotels, and event spaces.
 - Approve/reject bookings for owned properties
 - View rentals and payments related to owned properties
 
-### Tenant
+### User
 
 - Register and authenticate
 - Browse properties
@@ -239,7 +239,17 @@ hotels, and event spaces.
      NODE_ENV=development
      ```
 
-8. **Run the application**
+8. **Seed the database**
+
+   Populate the database with initial seed data (roles and default configurations):
+
+   ```bash
+   npm run seed
+   ```
+
+   > **Note**: This command is configured in `prisma.config.ts` It initializes essential data required for the application to function properly.
+
+9. **Run the application**
 
    ```bash
    npm run dev

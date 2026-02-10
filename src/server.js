@@ -1,12 +1,12 @@
 import express from 'express';
 import { ENV } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
-
+import { ApiResponse } from './utils/apiResponse.js';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import propertyManagerRoutes from './routes/propertyManager.routes.js';
 import userRoutes from './routes/user.routes.js';
-import { ApiResponse } from './utils/apiResponse.js';
+import globalErrorHandler from './middlewares/error.middleware.js';
 
 connectDB();
 
@@ -30,6 +30,9 @@ app.get('/api/v1/health', (req, res) => {
     })
   );
 });
+
+// Global error handler (must be after routes)
+app.use(globalErrorHandler);
 
 server = app.listen(PORT, () => {
   console.log(`Server running at http://localhost:${PORT}`);
