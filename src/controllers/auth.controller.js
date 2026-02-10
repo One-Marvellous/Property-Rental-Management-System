@@ -15,23 +15,17 @@ class AuthController {
         phoneNumber,
       });
 
-      res.status(201).json(
-        new ApiResponse(
-          true,
-          'User registered successfully',
-          result
-        )
-      );
+      res
+        .status(201)
+        .json(new ApiResponse(true, 'User registered successfully', result));
     } catch (error) {
       if (error instanceof ApiError) {
-        return res.status(error.statusCode).json(
-          new ApiResponse(false, error.message)
-        );
+        return res
+          .status(error.statusCode)
+          .json(new ApiResponse(false, error.message));
       }
       console.error('Registration error:', error);
-      res.status(500).json(
-        new ApiResponse(false, 'Registration failed')
-      );
+      res.status(500).json(new ApiResponse(false, 'Registration failed'));
     }
   }
 
@@ -41,23 +35,15 @@ class AuthController {
 
       const result = await authService.loginUser(email, password);
 
-      res.status(200).json(
-        new ApiResponse(
-          true,
-          'Login successful',
-          result
-        )
-      );
+      res.status(200).json(new ApiResponse(true, 'Login successful', result));
     } catch (error) {
       if (error instanceof ApiError) {
-        return res.status(error.statusCode).json(
-          new ApiResponse(false, error.message)
-        );
+        return res
+          .status(error.statusCode)
+          .json(new ApiResponse(false, error.message));
       }
       console.error('Login error:', error);
-      res.status(500).json(
-        new ApiResponse(false, 'Login failed')
-      );
+      res.status(500).json(new ApiResponse(false, 'Login failed'));
     }
   }
 
@@ -66,30 +52,26 @@ class AuthController {
       const { refreshToken } = req.body;
 
       if (!refreshToken) {
-        return res.status(400).json(
-          new ApiResponse(false, 'Refresh token required')
-        );
+        return res
+          .status(400)
+          .json(new ApiResponse(false, 'Refresh token required'));
       }
 
       const result = await authService.refreshTokens(refreshToken);
 
-      res.status(200).json(
-        new ApiResponse(
-          true,
-          'Token refreshed successfully',
-          result
-        )
-      );
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Token refreshed successfully', result));
     } catch (error) {
       if (error instanceof ApiError) {
-        return res.status(error.statusCode).json(
-          new ApiResponse(false, error.message)
-        );
+        return res
+          .status(error.statusCode)
+          .json(new ApiResponse(false, error.message));
       }
       console.error('Token refresh error:', error);
-      res.status(401).json(
-        new ApiResponse(false, 'Invalid or expired refresh token')
-      );
+      res
+        .status(401)
+        .json(new ApiResponse(false, 'Invalid or expired refresh token'));
     }
   }
 }
