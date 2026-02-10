@@ -132,7 +132,7 @@ class AuthService {
         refreshToken: newTokens.refreshToken,
       };
     } catch (error) {
-      throw new Error('Invalid refresh token');
+      throw new Error('Invalid refresh token', { cause: error });
     }
   }
 }
