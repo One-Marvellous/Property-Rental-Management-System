@@ -69,6 +69,7 @@ class AuthService {
     });
 
     const tokens = jwt.create({
+      //use token
       userId: newUser.id,
       activeRole: UserRole.USER,
     });
