@@ -10,11 +10,8 @@ const router = Router();
 
 // GET Properties route
 
-router.get(
-  '/properties',
-  authenticateWithCustomErrors,
-  authorizeRoles(UserRole.USER),
-  userController.getProperties
-);
+router.use(authenticateWithCustomErrors, authorizeRoles(UserRole.USER));
+
+router.get('/properties', userController.getProperties);
 
 export default router;

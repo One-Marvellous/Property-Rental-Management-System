@@ -4,6 +4,7 @@ import { zodValidation } from '../middlewares/zodValidation.middleware.js';
 import {
   loginValidator,
   signupValidator,
+  refreshTokenValidator,
 } from '../validators/auth.validators.js';
 
 const router = Router();
@@ -16,6 +17,10 @@ router.post(
 
 router.post('/login', zodValidation(loginValidator), authController.login);
 
-router.post('/refresh', authController.refresh);
+router.post(
+  '/refresh',
+  zodValidation(refreshTokenValidator),
+  authController.refresh
+);
 
 export default router;
