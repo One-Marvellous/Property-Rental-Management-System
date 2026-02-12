@@ -13,7 +13,9 @@ class AdminController {
         to,
         order,
       });
-      res.status(200).json(result);
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Users fetched successfully', result));
     } catch (error) {
       if (error instanceof ApiError) {
         return res

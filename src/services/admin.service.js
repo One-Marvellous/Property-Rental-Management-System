@@ -172,7 +172,7 @@ class AdminService {
    * @param {object} filters - Filter options
    * @param {number} filters.page - Page number (default: 1)
    * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
-   * @param {string} filters.status - Application status to filter by (optional)
+   * @param {string} filters.status - Application status to filter by (optional) typed as ManagerApplicationStatus enum
    * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
    * @param {string} filters.from - Start date filter (ISO format)
    * @param {string} filters.to - End date filter (ISO format)
@@ -182,7 +182,7 @@ class AdminService {
     const {
       page = 1,
       limit = LIMIT,
-      status,
+      status = ManagerApplicationStatus.PENDING,
       order = OrderStatus.DESC,
       from,
       to,

@@ -1,4 +1,4 @@
-import { PricingUnit } from '../models/pricing.unit';
+import { PricingUnit } from '../models/pricing.unit.js';
 
 export const calculateFutureDate = (unit, multiplier = 1) => {
   const today = new Date();

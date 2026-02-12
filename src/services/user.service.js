@@ -1,5 +1,390 @@
+import { prisma } from '../config/db.js';
+import ApiError from '../utils/apiError.js';
+import { LIMIT } from '../constants/pagination.js';
+import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
+import { PropertyApprovalStatus } from '../models/property.approval.status.js';
+import { ManagerApplicationStatus } from '../models/manager.application.status.js';
+import { PropertyAvailabilityStatus } from '../models/property.availability.status.js';
+import { calculateFutureDate } from '../utils/calculateFutureDate.js';
+import { UserRole } from '../models/roles.js';
+import { OrderStatus } from '../models/order.js';
+
+/**
+ * UserService handles business logic available to regular users
+ * - Browse properties
+ * - Create and manage bookings
+ * - Apply for property manager role
+ */
 class UserService {
-  async getProperties() {}
+  /**
+   * Retrieve available properties with pagination and optional date filtering
+   * @param {object} filters - Query filters
+   * @param {number} [filters.page=1] - Page number
+   * @param {number} [filters.limit=LIMIT] - Items per page
+   * @param {string} [filters.from] - ISO start date to filter created_at
+   * @param {string} [filters.to] - ISO end date to filter created_at
+   * @param {string} [filters.order='desc'] - Sort order for created_at
+   * @returns {Promise<object>} Paginated response containing properties
+   * @throws {ApiError} when database query fails
+   */
+  async getProperties(filters) {
+    const {
+      page = 1,
+      limit = LIMIT,
+      from,
+      to,
+      order = OrderStatus.DESC,
+    } = filters;
+
+    // Calculate pagination parameters
+    const { skip, take } = getPagination({ page, limit });
+
+    // Build query conditions
+    const where = {};
+
+    // Apply date range filter if provided
+    if (from || to) {
+      where.created_at = {};
+
+      if (from) where.created_at.gte = new Date(from);
+      if (to) where.created_at.lte = new Date(to);
+    }
+
+    // Apply availability_status
+    where.availability_status = PropertyAvailabilityStatus.AVAILABLE;
+
+    // Apply approval_status
+    where.approval_status = PropertyApprovalStatus.APPROVED;
+
+    // Fetch properties with pagination and filters
+    const properties = await prisma.properties.findMany({
+      where,
+      orderBy: { created_at: order },
+      skip,
+      take,
+    });
+
+    // Get total count for pagination metadata
+    const total = await prisma.properties.count({ where });
+
+    return buildPaginatedResponse({
+      data: properties,
+      total,
+      page,
+      limit,
+    });
+  }
+
+  /**
+   * Get a single property by ID including owner information
+   * @param {string} propertyId - ID of the property
+   * @returns {Promise<object>} Property object
+   * @throws {ApiError} If property not found (404)
+   */
+  async getPropertyById(propertyId) {
+    const property = await prisma.properties.findUnique({
+      where: { id: propertyId },
+      include: {
+        users: {
+          omit: { created_at: true, password_hash: true, is_suspended: true },
+        },
+      },
+    });
+
+    if (!property) throw new ApiError(404, 'Property not found');
+
+    return property;
+  }
+
+  /**
+   * Create a booking for a property
+   * @param {object} bookingData
+   * @param {string} bookingData.userId - ID of the booking user
+   * @param {string} bookingData.propertyId - ID of the property to book
+   * @param {number} bookingData.duration - Duration in units matching property pricing_unit
+   * @returns {Promise<object>} Created booking record
+   * @throws {ApiError} If property not found, not approved, or not available
+   */
+  async createBooking(bookingData) {
+    const { userId, propertyId, duration } = bookingData;
+
+    // Verify property exists
+    const property = await prisma.properties.findUnique({
+      where: { id: propertyId },
+    });
+    if (!property) {
+      throw new ApiError(404, 'Property not found');
+    }
+    // Ensure property is approved
+    if (property.approval_status !== PropertyApprovalStatus.APPROVED) {
+      throw new ApiError(400, 'Only approved property can be booked');
+    }
+
+    // Ensure property availability_status is available
+    if (property.availability_status !== PropertyAvailabilityStatus.AVAILABLE) {
+      throw new ApiError(400, 'Only available property can be booked');
+    }
+
+    // get it pricing unit and base price from property
+    const { pricing_unit, base_price } = property;
+
+    // use switch to go through the pricing_unit and determine duration and calculate end date
+
+    const endDate = calculateFutureDate(pricing_unit, duration);
+
+    const proposedAmount = base_price * duration;
+
+    // create booking
+    const booking = await prisma.bookings.create({
+      data: {
+        user_id: userId,
+        property_id: propertyId,
+        start_date: new Date(),
+        end_date: endDate,
+        proposed_amount: proposedAmount,
+      },
+      omit: { created_at: true, cancellation_reason: true, cancelled_at: true },
+    });
+
+    return booking;
+  }
+
+  /**
+   * Retrieve bookings for a given user
+   * @param {object} filters - Filter options
+   * @param {string} filters.userId - ID of the user
+   * @param {number} filters.page - Page number (default: 1)
+   * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
+   * @param {string} filters.from - Start date filter (ISO format)
+   * @param {string} filters.to - End date filter (ISO format)
+   * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
+   * @returns {Promise<object>} Paginated response containing user's bookings
+   * @throws {ApiError} If no bookings are found for the user (404)
+   */
+  async getBookingsByUserId(filters) {
+    const {
+      userId,
+      page = 1,
+      limit = LIMIT,
+      from,
+      to,
+      order = OrderStatus.DESC,
+    } = filters;
+
+    // Calculate pagination parameters
+    const { skip, take } = getPagination({ page, limit });
+
+    // Build query conditions
+    const where = {};
+
+    // Apply date range filter if provided
+    if (from || to) {
+      where.created_at = {};
+
+      if (from) where.created_at.gte = new Date(from);
+      if (to) where.created_at.lte = new Date(to);
+    }
+
+    // Apply user_id filter
+    where.user_id = userId;
+
+    const bookings = await prisma.bookings.findMany({
+      where,
+      orderBy: { created_at: order },
+      skip,
+      take,
+    });
+
+    // Get total count for pagination metadata
+    const total = await prisma.bookings.count({ where });
+
+    return buildPaginatedResponse({
+      data: bookings,
+      total,
+      page,
+      limit,
+    });
+  }
+
+  /**
+   * Get a single booking by ID for a user
+   * @param {object} data
+   * @param {string} data.userId - ID of the user who owns the booking
+   * @throws {ApiError} If booking not found (404)
+   * @returns {Promise<object>} Booking object
+   */
+  async getBookingById(data) {
+    const { userId, bookingId } = data;
+
+    const booking = await prisma.bookings.findFirst({
+      where: {
+        id: bookingId,
+        user_id: userId,
+      },
+      include: {
+        properties: {
+          select: {
+            address: true,
+            city: true,
+            base_price: true,
+            pricing_unit: true,
+            categories: true,
+            description: true,
+            id: true,
+          },
+        },
+      },
+    });
+
+    if (!booking) {
+      throw new ApiError(404, 'Booking not found');
+    }
+    return booking;
+  }
+
+  /**
+   * Cancel a user's booking
+   * @param {object} data
+   * @param {string} data.userId - ID of the user who owns the booking
+   * @param {string} data.reason - Cancellation reason
+   * @throws {ApiError} If booking not found or already cancelled
+   */
+  async cancelBooking(data) {
+    const { userId, reason } = data;
+    //    check for booking
+    const booking = await prisma.bookings.findFirst({
+      where: {
+        user_id: userId,
+      },
+    });
+
+    // see if it exist
+    if (!booking) {
+      throw new ApiError(404, 'Booking not found');
+    }
+
+    // see if it hasn't been canceled already
+    if (booking.cancellation_reason || booking.cancelled_at) {
+      throw new ApiError(400, 'Booking has already been cancelled');
+    }
+
+    // cancel it
+    await prisma.bookings.update({
+      where: { id: booking.id },
+      data: {
+        cancellation_reason: reason,
+        cancelled_at: new Date(),
+      },
+    });
+  }
+
+  /**
+   * Submit an application to become a property manager
+   * @param {object} data
+   * @param {string} data.userId - ID of the applicant
+   * @param {string} data.reason - Reason for applying
+   * @returns {Promise<object>} Created application
+   * @throws {ApiError} If a pending application exists or user already a manager
+   */
+  async applyForManager(data) {
+    const { userId, reason } = data;
+
+    // check if there is no pending application
+    const existingApplication = await prisma.manager_applications.findFirst({
+      where: {
+        user_id: userId,
+        status: 'pending',
+      },
+    });
+    if (existingApplication) {
+      throw new ApiError(
+        400,
+        'You already have a pending property manager application'
+      );
+    }
+
+    // check if user isn't a property manager from the roles table
+    const roles = await prisma.user_roles.findMany({
+      where: { user_id: userId },
+      include: { roles: true },
+    });
+
+    const isManager = roles.some((ur) => ur.roles.name === UserRole.MANAGER);
+
+    if (isManager) {
+      throw new ApiError(400, 'You are already a property manager');
+    }
+
+    // create application
+    const application = await prisma.property_manager_applications.create({
+      data: { user_id: userId, reason },
+      omit: { reviewed_at: true, reviewed_by: true, status: true },
+    });
+    return application;
+  }
+
+  /**
+   * Cancel a pending manager application for a user
+   * @param {string} userId - ID of the user
+   * @throws {ApiError} If pending application not found
+   */
+  async cancelManagerApplication(userId) {
+    // check for pending application
+    const application = await prisma.property_manager_applications.findFirst({
+      where: {
+        user_id: userId,
+        status: ManagerApplicationStatus.PENDING,
+      },
+    });
+
+    if (!application) {
+      throw new ApiError(404, 'Pending manager application not found');
+    }
+
+    // cancel the application
+    await prisma.property_manager_applications.update({
+      where: { id: application.id },
+      data: { status: ManagerApplicationStatus.CANCELLED },
+    });
+  }
+
+  /**
+   * Get the pending manager application for a user
+   * @param {string} userId - ID of the user
+   * @returns {Promise<object>} The pending application
+   * @throws {ApiError} If application not found or not pending
+   */
+  async getManagerApplication(userId) {
+    const application = await prisma.property_manager_applications.findFirst({
+      where: { user_id: userId },
+      omit: { reviewed_at: true, reviewed_by: true },
+    });
+    if (!application) {
+      throw new ApiError(404, 'Property manager application not found');
+    }
+
+    if (application.status !== ManagerApplicationStatus.PENDING) {
+      throw new ApiError(400, 'No pending property manager application found');
+    }
+    return application;
+  }
+
+  /**
+   * Retrieve status of the user's manager application
+   * @param {string} userId - ID of the user
+   * @returns {Promise<string>} Application status
+   * @throws {ApiError} If application not found
+   */
+  async getManagerApplicationStatus(userId) {
+    const application = await prisma.property_manager_applications.findFirst({
+      where: { user_id: userId },
+      select: { status: true },
+    });
+    if (!application) {
+      throw new ApiError(404, 'Property manager application not found');
+    }
+    return application.status;
+  }
 }
 
 export default new UserService();
