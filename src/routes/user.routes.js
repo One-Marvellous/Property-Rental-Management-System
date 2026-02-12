@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { UserRole } from '../models/role.js';
+import { UserRole } from '../models/roles.js';
 import userController from '../controllers/user.controller.js';
 import {
   authenticateWithCustomErrors,
@@ -8,32 +8,32 @@ import {
 
 const router = Router();
 
-// GET Properties route
+router.use(authenticateWithCustomErrors, authorizeRoles(UserRole.USER));
 
-router.get(
-  '/properties',
-  authenticateWithCustomErrors,
-  authorizeRoles(UserRole.USER, UserRole.ADMIN, UserRole.MANAGER),
-  userController.getProperties
-);
+router.get('/properties', userController.getProperties);
 
-router.get(
-  '/properties/:id',
-  authenticateWithCustomErrors,
-  authorizeRoles(UserRole.USER, UserRole.ADMIN, UserRole.MANAGER),
-  userController.getPropertiesById
-);
+router.get('/properties/:id', userController.getPropertiesById);
 
-router.post(
-  '/bookings',
-  authenticateWithCustomErrors,
-  authorizeRoles(UserRole.USER),
-  userController.createBooking
-);
+router.post('/bookings', userController.createBooking);
+
+router.patch('/bookings/:id/cancel', userController.cancelBooking);
+
+router.get('/bookings', userController.getUserBookings);
+
+router.get('/bookings/:id', userController.getBookingById);
+
+router.post('/manager-application', userController.applyForManager);
+
 router.patch(
-  '/bookings/:id/cancel',
-  authenticateWithCustomErrors,
-  authorizeRoles(UserRole.USER),
-  userController.cancelBooking
+  '/manager-application/cancel',
+  userController.cancelManagerApplication
 );
+
+router.get('/manager-application', userController.getManagerApplication);
+
+router.get(
+  '/manager-application/status',
+  userController.getManagerApplicationStatus
+);
+
 export default router;

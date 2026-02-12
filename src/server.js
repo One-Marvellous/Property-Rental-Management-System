@@ -1,6 +1,8 @@
 import express from 'express';
+import swaggerUi from 'swagger-ui-express';
 import { ENV } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
+import { specs } from './config/swagger.js';
 import { ApiResponse } from './utils/apiResponse.js';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js';
@@ -16,7 +18,28 @@ const PORT = ENV.PORT;
 
 let server;
 
+// CORS middleware for Swagger UI and API requests
+app.use((req, res, next) => {
+  res.header('Access-Control-Allow-Origin', '*');
+  res.header(
+    'Access-Control-Allow-Methods',
+    'GET, POST, PUT, PATCH, DELETE, OPTIONS'
+  );
+  res.header(
+    'Access-Control-Allow-Headers',
+    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
+  );
+
+  if (req.method === 'OPTIONS') {
+    return res.sendStatus(200);
+  }
+  next();
+});
+
 app.use(express.json());
+
+// Swagger API Documentation
+app.use('/api/doc', swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);

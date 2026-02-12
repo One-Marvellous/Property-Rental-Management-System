@@ -10,26 +10,33 @@ export const zodValidation = (schema) => {
         params: req.params,
       });
 
-      next();
+      return next();
     } catch (error) {
+      /**
+       * Handle Zod validation errors
+       */
       if (error instanceof ZodError) {
-        const errors = (error.issues || []).map((err) => ({
-          path: err.path.join('.'),
-          message: err.message,
+        const errors = error.issues.map((issue) => ({
+          path: issue.path.join('.'),
+          message: issue.message,
         }));
 
-        next(new ApiError(400, 'Validation Error', 'VALIDATION_ERROR', errors));
-      } else {
-        next(
-          new ApiError(500, 'Internal Server Error', 'UNKNOWN_ERROR', [
-            {
-              message:
-                error?.message ||
-                'An unknown error occurred during validation.',
-            },
-          ])
+        return next(
+          new ApiError(400, 'Validation Error', 'VALIDATION_ERROR', errors)
         );
       }
+
+      /**
+       * Handle unknown/internal errors
+       */
+      return next(
+        new ApiError(500, 'Internal Server Error', 'UNKNOWN_ERROR', [
+          {
+            message:
+              error?.message || 'An unknown error occurred during validation.',
+          },
+        ])
+      );
     }
   };
 };
