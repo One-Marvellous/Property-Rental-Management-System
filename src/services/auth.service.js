@@ -5,10 +5,23 @@ import ApiError from '../utils/apiError.js';
 import { UserRole } from '../models/roles.js';
 import { resolveUserRole } from '../utils/resolveUserRole.js';
 
+/**
+ * AuthService handles user authentication, registration, and token management
+ * - registerUser: Creates a new user, hashes their password, assigns default role, and returns tokens
+ * - loginUser: Authenticates user credentials, checks for suspension, resolves active role, and returns tokens
+ * - refreshTokens: Validates refresh token and issues new access & refresh tokens
+ */
 class AuthService {
   /**
    * Register a new user and assign default role
-   * @param {object} userData
+   * @param {object} userData - User registration data
+   * @param {string} userData.email - User's email address
+   * @param {string} userData.password - User's plaintext password
+   * @param {string} userData.firstName - User's first name
+   * @param {string} userData.lastName - User's last name
+   * @param {string} userData.phoneNumber - User's phone number
+   * @returns {Promise<object>} Registered user data and JWT tokens
+   * @throws {ApiError} Throws ApiError for registration issues (e.g., email already registered)
    */
   async registerUser(userData) {
     const { email, password, firstName, lastName, phoneNumber } = userData;
@@ -95,6 +108,7 @@ class AuthService {
    * Authenticate user and generate JWT tokens
    * @param {string} email
    * @param {string} password
+   * @throws {ApiError} Throws ApiError for invalid credentials or suspended accounts
    * @returns {Promise<object>}
    */
   async loginUser(email, password) {
@@ -173,6 +187,8 @@ class AuthService {
   /**
    * Refreshes user Token
    * @param {string} refreshToken
+   * @return {Promise<object>} New access and refresh tokens
+   * @throws {ApiError} Throws ApiError if refresh token is invalid or expired
    */
   async refreshTokens(refreshToken) {
     try {
@@ -188,4 +204,5 @@ class AuthService {
   }
 }
 
+// Export singleton instance for use throughout the application
 export default new AuthService();

@@ -257,6 +257,34 @@ hotels, and event spaces.
 
    The server will start on `http://localhost:3000` (or the port specified in `.env`)
 
+## API Documentation
+
+The API documentation is available through **Swagger UI** which provides interactive API exploration and testing.
+
+### Accessing the Documentation
+
+Once the server is running, visit:
+
+```
+http://localhost:3000/api/doc
+```
+
+The Swagger UI interface allows you to:
+
+- View all available endpoints with detailed descriptions
+- See request/response schemas
+- Test API endpoints directly from the browser
+- Review authentication requirements for protected endpoints
+- Understand pagination and filtering options
+
+### API Endpoints Overview
+
+- **Authentication**: `/api/v1/auth` - Register, login, and token refresh
+- **Admin**: `/api/v1/admin` - User management, category management, approvals
+- **Property Manager**: `/api/v1/property-manager` - Property and booking management
+- **User**: `/api/v1/user` - User profile and rental information
+- **Health**: `/api/v1/health` - Server health check
+
 ## Database Schema
 
 The system uses the following main entities:
