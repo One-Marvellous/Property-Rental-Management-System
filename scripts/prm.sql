@@ -86,6 +86,10 @@ CREATE TABLE property_manager_applications (
   )
 );
 
+CREATE INDEX idx_manager_app_status_created
+ON property_manager_applications(status, created_at);
+
+
 CREATE UNIQUE INDEX idx_unique_pending_application
 ON property_manager_applications(user_id)
 WHERE status = 'pending';

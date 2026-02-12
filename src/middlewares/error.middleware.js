@@ -1,7 +1,10 @@
 import ApiError from '../utils/apiError.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 
-export const globalErrorHandler = (err, req, res) => {
+export const globalErrorHandler = (err, req, res, next) => {
+  if (res.headersSent) {
+    return next(err);
+  }
   if (err instanceof ApiError) {
     return res.status(err.statusCode || 500).json(
       new ApiResponse(false, err.message || 'Error', {

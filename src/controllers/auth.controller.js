@@ -51,12 +51,6 @@ class AuthController {
     try {
       const { refreshToken } = req.body;
 
-      if (!refreshToken) {
-        return res
-          .status(400)
-          .json(new ApiResponse(false, 'Refresh token required'));
-      }
-
       const result = await authService.refreshTokens(refreshToken);
 
       res

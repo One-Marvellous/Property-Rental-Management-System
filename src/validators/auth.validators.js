@@ -74,3 +74,20 @@ export const signupValidator = z.object({
   query: z.object({}).strict().optional(),
   params: z.object({}).strict().optional(),
 });
+
+/**
+ * Refresh Token Validator Schema
+ * Validates refresh token for token refresh endpoint
+ */
+export const refreshTokenValidator = z.object({
+  body: z.object({
+    refreshToken: z
+      .string({
+        required_error: 'Refresh token is required',
+        invalid_type_error: 'Refresh token must be a string',
+      })
+      .min(1, 'Refresh token cannot be empty'),
+  }),
+  query: z.object({}).strict().optional(),
+  params: z.object({}).strict().optional(),
+});
