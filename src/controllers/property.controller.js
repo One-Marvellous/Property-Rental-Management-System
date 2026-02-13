@@ -1,4 +1,5 @@
-import propertyService from '../services/property.service';
+import propertyService from '../services/property.service.js';
+import { ApiResponse } from '../utils/apiResponse.js';
 
 class PropertyController {
   async getProperties(req, res, next) {

@@ -3,6 +3,10 @@ import ApiError from '../utils/apiError.js';
 import { LIMIT } from '../constants/pagination.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { OrderStatus } from '../models/order.js';
+import {
+  PropertyApprovalStatus,
+  PropertyAvailabilityStatus,
+} from '../models/property.js';
 
 /**
  * PropertyService handles business logic related to property retrieval and management
@@ -87,7 +91,27 @@ class PropertyService {
 
     if (!property) throw new ApiError(404, 'Property not found');
 
-    return property;
+    return {
+      manager: property.users,
+      property: {
+        id: property.id,
+        created_at: property.created_at,
+        description: property.description,
+        title: property.title,
+        address: property.address,
+        city: property.city,
+        state: property.state,
+        pricing_unit: property.pricing_unit,
+        base_price: property.base_price,
+        approval_status: property.approval_status,
+        availability_status: property.availability_status,
+        category_id: property.category_id,
+        manager_id: property.manager_id,
+        approved_by: property.approved_by,
+        approved_at: property.approved_at,
+        rejection_reason: property.rejection_reason,
+      },
+    };
   }
 }
 

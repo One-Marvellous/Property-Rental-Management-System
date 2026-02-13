@@ -18,25 +18,14 @@ import { jwt } from '../config/jwt.js';
  */
 class UserService {
   /**
-   * Retrieve available properties with pagination and optional date filtering
-   * @param {object} filters - Query filters
-   * @param {number} [filters.page=1] - Page number
-   * @param {number} [filters.limit=LIMIT] - Items per page
-   * @param {string} [filters.from] - ISO start date to filter created_at
-   * @param {string} [filters.to] - ISO end date to filter created_at
-   * @param {string} [filters.order='desc'] - Sort order for created_at
-   * @returns {Promise<object>} Paginated response containing properties
-   * @throws {ApiError} when database query fails
-   */
-
-  /**
    * Switch a user's role (e.g., from regular user to property manager)
-   * @param {string} userId - ID of the user whose role is to be switched
-   * @param {string} newRole - The new role to assign to the user (e.g., 'user', 'manager')
+   * @param {string} data.userId - ID of the user whose role is to be switched
+   * @param {string} data.newRole - The new role to assign to the user (e.g., 'user', 'manager')
    * @returns {Promise<object>} Updated user data and new JWT tokens
    * @throws {ApiError} Throws ApiError for invalid role, insufficient permissions, or revoked roles
    */
-  async switchUserRole(userId, newRole) {
+  async switchUserRole(data) {
+    const { userId, newRole } = data;
     // check if newRole is valid
     if (!Object.values(UserRole).includes(newRole)) {
       throw new ApiError(400, 'Invalid role specified');
@@ -52,7 +41,7 @@ class UserService {
 
     if (!existingRole) {
       throw new ApiError(
-        400,
+        403,
         `User have no permission to switch to ${newRole} role`
       );
     }
@@ -61,7 +50,7 @@ class UserService {
 
     if (existingRole.revoked_at) {
       throw new ApiError(
-        400,
+        403,
         `User's ${newRole} role has been revoked and cannot be switched to`
       );
     }
@@ -133,7 +122,7 @@ class UserService {
         end_date: endDate,
         proposed_amount: proposedAmount,
       },
-      omit: { created_at: true, cancellation_reason: true, cancelled_at: true },
+      omit: { cancellation_reason: true, cancelled_at: true },
     });
 
     return booking;
@@ -148,10 +137,11 @@ class UserService {
    * @param {string} filters.from - Start date filter (ISO format)
    * @param {string} filters.to - End date filter (ISO format)
    * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
+   * @param {string} filters.status - Booking status filter (optional) [BookingStatus.PENDING, BookingStatus.APPROVED, BookingStatus.REJECTED, BookingStatus.CANCELLED]
    * @returns {Promise<object>} Paginated response containing user's bookings
    * @throws {ApiError} If no bookings are found for the user (404)
    */
-  async getBookingsByUserId(filters) {
+  async getUserBookings(filters) {
     const {
       userId,
       page = 1,
@@ -159,6 +149,7 @@ class UserService {
       from,
       to,
       order = OrderStatus.DESC,
+      status,
     } = filters;
 
     // Calculate pagination parameters
@@ -177,6 +168,11 @@ class UserService {
 
     // Apply user_id filter
     where.user_id = userId;
+
+    // Apply status filter if provided
+    if (status) {
+      where.status = status;
+    }
 
     const bookings = await prisma.bookings.findMany({
       where,
@@ -229,7 +225,21 @@ class UserService {
     if (!booking) {
       throw new ApiError(404, 'Booking not found');
     }
-    return booking;
+    return {
+      booking: {
+        id: booking.id,
+        user_id: booking.user_id,
+        property_id: booking.property_id,
+        start_date: booking.start_date,
+        end_date: booking.end_date,
+        proposed_amount: booking.proposed_amount,
+        status: booking.status,
+        cancellation_reason: booking.cancellation_reason,
+        cancelled_at: booking.cancelled_at,
+        created_at: booking.created_at,
+      },
+      property: booking.properties,
+    };
   }
 
   /**
@@ -237,14 +247,16 @@ class UserService {
    * @param {object} data
    * @param {string} data.userId - ID of the user who owns the booking
    * @param {string} data.reason - Cancellation reason
+   * @param {string} data.bookingId - ID of the booking to cancel
    * @throws {ApiError} If booking not found or already cancelled
    */
   async cancelBooking(data) {
-    const { userId, reason } = data;
+    const { userId, reason, bookingId } = data;
     //    check for booking
     const booking = await prisma.bookings.findFirst({
       where: {
         user_id: userId,
+        id: bookingId,
       },
     });
 
@@ -308,7 +320,6 @@ class UserService {
     // create application
     const application = await prisma.property_manager_applications.create({
       data: { user_id: userId, reason },
-      omit: { reviewed_at: true, reviewed_by: true, status: true },
     });
     return application;
   }
@@ -339,12 +350,12 @@ class UserService {
   }
 
   /**
-   * Get the pending manager application for a user
+   * Get the latest pending manager application for a user
    * @param {string} userId - ID of the user
    * @returns {Promise<object>} The pending application
    * @throws {ApiError} If application not found or not pending
    */
-  async getManagerApplication(userId) {
+  async getLatestManagerApplication(userId) {
     const application = await prisma.property_manager_applications.findFirst({
       where: { user_id: userId },
       omit: { reviewed_at: true, reviewed_by: true },

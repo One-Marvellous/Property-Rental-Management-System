@@ -32,7 +32,7 @@ router.patch(
   userController.cancelManagerApplication
 );
 
-router.get('/manager-application', userController.getManagerApplication);
+router.get('/manager-application', userController.getLatestManagerApplication);
 
 router.get(
   '/manager-application/status',

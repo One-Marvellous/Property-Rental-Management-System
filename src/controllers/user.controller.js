@@ -14,7 +14,7 @@ class UserController {
 
       res
         .status(200)
-        .json(new ApiResponse(true, 'User role switched successfully', result));
+        .json(new ApiResponse(true, 'Role switched successfully', result));
     } catch (error) {
       next(error);
     }
@@ -23,7 +23,7 @@ class UserController {
   async createBooking(req, res, next) {
     try {
       const userId = req.user.userId;
-      const { propertyId, duration } = req.query;
+      const { propertyId, duration } = req.body;
 
       const result = await userService.createBooking({
         userId,
@@ -32,7 +32,7 @@ class UserController {
       });
 
       res
-        .status(200)
+        .status(201)
         .json(new ApiResponse(true, 'Booking successfully created', result));
     } catch (error) {
       next(error);
@@ -43,15 +43,16 @@ class UserController {
     try {
       const userId = req.user.userId;
 
-      const { page, limit, from, to, order } = req.query;
+      const { page, limit, from, to, order, status } = req.query;
 
-      const result = await userService.getBookingsByUserId({
+      const result = await userService.getUserBookings({
         userId,
         page,
         limit,
         from,
         to,
         order,
+        status,
       });
       res
         .status(200)
@@ -83,10 +84,12 @@ class UserController {
   async cancelBooking(req, res, next) {
     try {
       const userId = req.user.userId;
+      const bookingId = req.params.id;
       const { reason } = req.body;
 
       await userService.cancelBooking({
         userId,
+        bookingId,
         reason,
       });
 
@@ -138,10 +141,10 @@ class UserController {
     }
   }
 
-  async getManagerApplication(req, res, next) {
+  async getLatestManagerApplication(req, res, next) {
     try {
       const userId = req.user.userId;
-      const result = await userService.getManagerApplication(userId);
+      const result = await userService.getLatestManagerApplication(userId);
       res
         .status(200)
         .json(

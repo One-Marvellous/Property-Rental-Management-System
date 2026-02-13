@@ -1,6 +1,10 @@
 import { Router } from 'express';
 import { UserRole } from '../models/roles.js';
 import propertyController from '../controllers/property.controller.js';
+import {
+  authenticateWithCustomErrors,
+  authorizeRoles,
+} from '../middlewares/auth.middleware.js';
 
 const router = Router();
 
