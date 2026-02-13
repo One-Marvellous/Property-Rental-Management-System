@@ -413,13 +413,13 @@ For issues, questions, or contributions, please open an issue or contact the dev
 
 ---
 
-# Property Rental Management System (Backend)
+# 🏘️ Property Rental Management System (Backend)
 
 A robust, production-ready RESTful API designed to manage the full lifecycle of property rentals. From multi-role authentication to structured financial tracking, this system provides a scalable foundation for apartments, hotels, and event spaces.
 
 ---
 
-## System Overview
+## 🚀 System Overview
 
 The system operates on a linear progression model, ensuring data integrity from the moment a property is listed to the final payment of a lease.
 
@@ -442,7 +442,7 @@ graph LR
 
 ---
 
-## Role-Based Access Control (RBAC)
+## 👥 Role-Based Access Control (RBAC)
 
 The system features a dynamic role-switching model (similar to Fiverr) allowing users to pivot between tenant and manager flows.
 
@@ -454,7 +454,7 @@ The system features a dynamic role-switching model (similar to Fiverr) allowing 
 
 ---
 
-## Tech Stack
+## 🛠️ Tech Stack
 
 - **Runtime:** Node.js (ES Modules)
 - **Framework:** Express.js
@@ -464,18 +464,18 @@ The system features a dynamic role-switching model (similar to Fiverr) allowing 
 
 ---
 
-## API Reference
+## 🛣️ API Reference
 
 All endpoints are prefixed with `/api/v1`. Detailed interactive documentation is available at `{BASE_URL}/api/doc`.
 
-### Authentication (`/auth`)
+### 🔐 Authentication (`/auth`)
 
 | Method | Endpoint    | Description                                        |
 | ------ | ----------- | -------------------------------------------------- |
 | `POST` | `/register` | Create a new tenant account                        |
 | `POST` | `/login`    | Authenticate and receive JWT Access/Refresh tokens |
 
-### Admin Operations (`/admin`)
+### 🛡️ Admin Operations (`/admin`)
 
 | Method  | Endpoint                | Description                              |
 | ------- | ----------------------- | ---------------------------------------- |
@@ -483,14 +483,14 @@ All endpoints are prefixed with `/api/v1`. Detailed interactive documentation is
 | `PATCH` | `/property/:id/approve` | Verify and publish a property listing    |
 | `GET`   | `/payments/summary`     | Global financial reporting and analytics |
 
-### Property Manager Operations (`/property-manager`)
+### 🏘️ Property Manager Operations (`/property-manager`)
 
 | Method  | Endpoint                | Description                                   |
 | ------- | ----------------------- | --------------------------------------------- |
 | `POST`  | `/properties`           | List a new property (requires Admin approval) |
 | `PATCH` | `/bookings/:id/approve` | Transition a booking into an active rental    |
 
-### Tenant Operations (`/user`)
+### 👤 Tenant Operations (`/user`)
 
 | Method | Endpoint                | Description                                                 |
 | ------ | ----------------------- | ----------------------------------------------------------- |
@@ -500,7 +500,7 @@ All endpoints are prefixed with `/api/v1`. Detailed interactive documentation is
 
 ---
 
-## Database Architecture
+## 🗄️ Database Architecture
 
 The system utilizes a fully normalized PostgreSQL schema to ensure transaction safety and data consistency.
 
@@ -514,7 +514,7 @@ The system utilizes a fully normalized PostgreSQL schema to ensure transaction s
 
 ---
 
-## Getting Started
+## ⚙️ Getting Started
 
 1. **Clone & Install**
 
