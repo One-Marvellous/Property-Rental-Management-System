@@ -2,13 +2,15 @@ import { prisma } from '../config/db.js';
 import ApiError from '../utils/apiError.js';
 import { LIMIT } from '../constants/pagination.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
-import { PropertyApprovalStatus } from '../models/property.approval.status.js';
-import { ManagerApplicationStatus } from '../models/manager.application.status.js';
-import { PropertyAvailabilityStatus } from '../models/property.availability.status.js';
 import { calculateFutureDate } from '../utils/calculateFutureDate.js';
 import { UserRole } from '../models/roles.js';
 import { OrderStatus } from '../models/order.js';
 import { jwt } from '../config/jwt.js';
+import {
+  property_approval_status,
+  manager_application_status,
+  property_availability_status,
+} from '../generated/prisma/index.js';
 
 /**
  * UserService handles business logic available to regular users
@@ -95,12 +97,14 @@ class UserService {
       throw new ApiError(404, 'Property not found');
     }
     // Ensure property is approved
-    if (property.approval_status !== PropertyApprovalStatus.APPROVED) {
+    if (property.approval_status !== property_approval_status.approved) {
       throw new ApiError(400, 'Only approved property can be booked');
     }
 
     // Ensure property availability_status is available
-    if (property.availability_status !== PropertyAvailabilityStatus.AVAILABLE) {
+    if (
+      property.availability_status !== property_availability_status.available
+    ) {
       throw new ApiError(400, 'Only available property can be booked');
     }
 
@@ -137,7 +141,7 @@ class UserService {
    * @param {string} filters.from - Start date filter (ISO format)
    * @param {string} filters.to - End date filter (ISO format)
    * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
-   * @param {string} filters.status - Booking status filter (optional) [BookingStatus.PENDING, BookingStatus.APPROVED, BookingStatus.REJECTED, BookingStatus.CANCELLED]
+   * @param {string} filters.status - Booking status filter (optional) [booking_status]
    * @returns {Promise<object>} Paginated response containing user's bookings
    * @throws {ApiError} If no bookings are found for the user (404)
    */
@@ -334,7 +338,7 @@ class UserService {
     const application = await prisma.property_manager_applications.findFirst({
       where: {
         user_id: userId,
-        status: ManagerApplicationStatus.PENDING,
+        status: manager_application_status.pending,
       },
     });
 
@@ -345,7 +349,7 @@ class UserService {
     // cancel the application
     await prisma.property_manager_applications.update({
       where: { id: application.id },
-      data: { status: ManagerApplicationStatus.CANCELLED },
+      data: { status: manager_application_status.cancelled },
     });
   }
 
@@ -364,7 +368,7 @@ class UserService {
       throw new ApiError(404, 'Property manager application not found');
     }
 
-    if (application.status !== ManagerApplicationStatus.PENDING) {
+    if (application.status !== manager_application_status.pending) {
       throw new ApiError(400, 'No pending property manager application found');
     }
     return application;

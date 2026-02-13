@@ -4,9 +4,9 @@ import { LIMIT } from '../constants/pagination.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { OrderStatus } from '../models/order.js';
 import {
-  PropertyApprovalStatus,
-  PropertyAvailabilityStatus,
-} from '../models/property.js';
+  property_approval_status,
+  property_availability_status,
+} from '../generated/prisma/index.js';
 
 /**
  * PropertyService handles business logic related to property retrieval and management
@@ -49,10 +49,10 @@ class PropertyService {
     }
 
     // Apply availability_status
-    where.availability_status = PropertyAvailabilityStatus.AVAILABLE;
+    where.availability_status = property_availability_status.available;
 
     // Apply approval_status
-    where.approval_status = PropertyApprovalStatus.APPROVED;
+    where.approval_status = property_approval_status.approved;
 
     // Fetch properties with pagination and filters
     const properties = await prisma.properties.findMany({

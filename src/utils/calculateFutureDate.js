@@ -1,26 +1,26 @@
-import { PricingUnit } from '../models/pricing.unit.js';
+import { pricing_unit } from '../generated/prisma/index.js';
 
 export const calculateFutureDate = (unit, multiplier = 1) => {
   const today = new Date();
   let result;
 
   switch (unit) {
-    case PricingUnit.DAY:
+    case pricing_unit.day:
       result = new Date(today);
       result.setDate(today.getDate() + 1 * multiplier);
       break;
 
-    case PricingUnit.EVENT:
+    case pricing_unit.event:
       result = new Date(today);
       result.setDate(today.getDate() + 1 * multiplier);
       break;
 
-    case PricingUnit.NIGHT:
+    case pricing_unit.night:
       result = new Date(today);
       result.setDate(today.getDate() + 1 * multiplier);
       break;
 
-    case PricingUnit.MONTH:
+    case pricing_unit.month:
       result = new Date(today);
       result.setMonth(today.getMonth() + 1 * multiplier);
       break;
