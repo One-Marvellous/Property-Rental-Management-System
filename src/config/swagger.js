@@ -8,7 +8,7 @@ const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
     info: {
-      title: 'Property Rental Management System API',
+      title: 'Property Rental Management System APIx',
       description:
         'A scalable backend application for managing property rentals with multi-role access control (Admin, User, Property Manager), secure authentication, and structured payment tracking.',
       version: '1.0.0',
@@ -56,7 +56,7 @@ const swaggerOptions = {
         User: {
           type: 'object',
           properties: {
-            userId: {
+            id: {
               type: 'string',
               example: 'user_123abc',
             },
@@ -65,18 +65,26 @@ const swaggerOptions = {
               format: 'email',
               example: 'user@example.com',
             },
-            firstName: {
+            first_name: {
               type: 'string',
               example: 'John',
             },
-            lastName: {
+            last_name: {
               type: 'string',
               example: 'Doe',
             },
-            phoneNumber: {
+            phone_number: {
               type: 'string',
               nullable: true,
               example: '+1234567890',
+            },
+            created_at: {
+              type: 'string',
+              example: '2026-02-13T13:43:30.469Z',
+            },
+            activeRole: {
+              type: 'string',
+              example: 'user',
             },
           },
         },
