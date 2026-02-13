@@ -2,36 +2,19 @@ import userService from '../services/user.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 
 class UserController {
-  async getProperties(req, res, next) {
+  async switchUserRole(req, res, next) {
     try {
-      const { city, state, address, page, limit, from, to } = req.query;
+      const userId = req.user.userId;
+      const { newRole } = req.body;
 
-      const result = await userService.getProperties({
-        city,
-        state,
-        address,
-        page,
-        limit,
-        from,
-        to,
+      const result = await userService.switchUserRole({
+        userId,
+        newRole,
       });
 
       res
         .status(200)
-        .json(new ApiResponse(true, 'Properties fetched successfully', result));
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  async getPropertiesById(req, res, next) {
-    try {
-      const propertyId = req.params.id;
-
-      const result = await userService.getPropertyById(propertyId);
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Property successfully fetched', result));
+        .json(new ApiResponse(true, 'User role switched successfully', result));
     } catch (error) {
       next(error);
     }

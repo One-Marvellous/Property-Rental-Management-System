@@ -8,6 +8,7 @@ import { PropertyAvailabilityStatus } from '../models/property.availability.stat
 import { calculateFutureDate } from '../utils/calculateFutureDate.js';
 import { UserRole } from '../models/roles.js';
 import { OrderStatus } from '../models/order.js';
+import { jwt } from '../config/jwt.js';
 
 /**
  * UserService handles business logic available to regular users
@@ -27,73 +28,62 @@ class UserService {
    * @returns {Promise<object>} Paginated response containing properties
    * @throws {ApiError} when database query fails
    */
-  async getProperties(filters) {
-    const {
-      page = 1,
-      limit = LIMIT,
-      from,
-      to,
-      order = OrderStatus.DESC,
-    } = filters;
-
-    // Calculate pagination parameters
-    const { skip, take } = getPagination({ page, limit });
-
-    // Build query conditions
-    const where = {};
-
-    // Apply date range filter if provided
-    if (from || to) {
-      where.created_at = {};
-
-      if (from) where.created_at.gte = new Date(from);
-      if (to) where.created_at.lte = new Date(to);
-    }
-
-    // Apply availability_status
-    where.availability_status = PropertyAvailabilityStatus.AVAILABLE;
-
-    // Apply approval_status
-    where.approval_status = PropertyApprovalStatus.APPROVED;
-
-    // Fetch properties with pagination and filters
-    const properties = await prisma.properties.findMany({
-      where,
-      orderBy: { created_at: order },
-      skip,
-      take,
-    });
-
-    // Get total count for pagination metadata
-    const total = await prisma.properties.count({ where });
-
-    return buildPaginatedResponse({
-      data: properties,
-      total,
-      page,
-      limit,
-    });
-  }
 
   /**
-   * Get a single property by ID including owner information
-   * @param {string} propertyId - ID of the property
-   * @returns {Promise<object>} Property object
-   * @throws {ApiError} If property not found (404)
+   * Switch a user's role (e.g., from regular user to property manager)
+   * @param {string} userId - ID of the user whose role is to be switched
+   * @param {string} newRole - The new role to assign to the user (e.g., 'user', 'manager')
+   * @returns {Promise<object>} Updated user data and new JWT tokens
+   * @throws {ApiError} Throws ApiError for invalid role, insufficient permissions, or revoked roles
    */
-  async getPropertyById(propertyId) {
-    const property = await prisma.properties.findUnique({
-      where: { id: propertyId },
-      include: {
-        users: {
-          omit: { created_at: true, password_hash: true, is_suspended: true },
-        },
+  async switchUserRole(userId, newRole) {
+    // check if newRole is valid
+    if (!Object.values(UserRole).includes(newRole)) {
+      throw new ApiError(400, 'Invalid role specified');
+    }
+
+    // check if the user have been assigned the manager role
+    const existingRole = await prisma.user_roles.findFirst({
+      where: {
+        user_id: userId,
+        roles: { name: newRole },
       },
     });
 
-    if (!property) throw new ApiError(404, 'Property not found');
+    if (!existingRole) {
+      throw new ApiError(
+        400,
+        `User have no permission to switch to ${newRole} role`
+      );
+    }
 
-    return property;
+    // check if the role is revoked
+
+    if (existingRole.revoked_at) {
+      throw new ApiError(
+        400,
+        `User's ${newRole} role has been revoked and cannot be switched to`
+      );
+    }
+
+    // get user
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      omit: { password_hash: true, is_suspended: true },
+    });
+
+    // generate new token with the new role
+    const tokens = jwt.create({
+      userId: user.id,
+      activeRole: newRole,
+    });
+
+    //   Return the new tokens and user info
+    return {
+      user,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   /**

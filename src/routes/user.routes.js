@@ -8,11 +8,14 @@ import {
 
 const router = Router();
 
+router.post(
+  '/switch-role',
+  authenticateWithCustomErrors,
+  authorizeRoles(UserRole.USER, UserRole.MANAGER, UserRole.ADMIN),
+  userController.switchUserRole
+);
+
 router.use(authenticateWithCustomErrors, authorizeRoles(UserRole.USER));
-
-router.get('/properties', userController.getProperties);
-
-router.get('/properties/:id', userController.getPropertiesById);
 
 router.post('/bookings', userController.createBooking);
 
