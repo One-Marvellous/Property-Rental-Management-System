@@ -233,6 +233,40 @@ const swaggerOptions = {
           ],
         },
 
+        ManagerApplicationDetailResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    application: {
+                      $ref: '#/components/schemas/ManagerApplication',
+                    },
+                    applicant: { $ref: '#/components/schemas/User' },
+                  },
+                },
+              },
+            },
+          ],
+        },
+
+        CategoryResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  $ref: '#/components/schemas/Category',
+                },
+              },
+            },
+          ],
+        },
+
         /** ---------------- PAGINATION ---------------- */
         PaginationMeta: {
           type: 'object',
@@ -268,6 +302,51 @@ const swaggerOptions = {
                 data: {
                   type: 'array',
                   items: { $ref: '#/components/schemas/Booking' },
+                },
+              },
+            },
+          ],
+        },
+
+        PaginatedProperty: {
+          allOf: [
+            { $ref: '#/components/schemas/PaginatedResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Property' },
+                },
+              },
+            },
+          ],
+        },
+
+        PaginatedUsers: {
+          allOf: [
+            { $ref: '#/components/schemas/PaginatedResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/User' },
+                },
+              },
+            },
+          ],
+        },
+
+        PaginatedManagerApplicationResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/PaginatedResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/ManagerApplication' },
                 },
               },
             },

@@ -3,6 +3,7 @@ import {
   TokenExpiredError,
   InvalidTokenError,
 } from '@dax-side/jwt-abstraction';
+import { ApiResponse } from '../utils/apiResponse.js';
 
 export const authenticate = jwt.protect();
 
@@ -14,9 +15,9 @@ export const authenticateWithCustomErrors = async (req, res, next) => {
     const authHeader = req.headers.authorization;
 
     if (!authHeader || !authHeader.startsWith('Bearer ')) {
-      return res.status(401).json({
-        error: 'Authorization token required',
-      });
+      return res
+        .status(401)
+        .json(new ApiResponse(false, 'Authorization token required'));
     }
 
     const token = authHeader.split(' ')[1];
@@ -27,17 +28,11 @@ export const authenticateWithCustomErrors = async (req, res, next) => {
   } catch (error) {
     // Handle known auth errors
     if (error instanceof TokenExpiredError) {
-      return res.status(401).json({
-        error: 'Token expired',
-        code: 'TOKEN_EXPIRED',
-      });
+      return res.status(401).json(new ApiResponse(false, 'Token expired'));
     }
 
     if (error instanceof InvalidTokenError) {
-      return res.status(401).json({
-        error: 'Invalid token',
-        code: 'INVALID_TOKEN',
-      });
+      return res.status(401).json(ApiResponse(false, 'Invalid Token'));
     }
 
     next(error);
@@ -51,17 +46,15 @@ export const authenticateWithCustomErrors = async (req, res, next) => {
 export const authorizeRoles = (...allowedRoles) => {
   return (req, res, next) => {
     if (!req.user) {
-      return res.status(401).json({
-        error: 'Authentication required',
-      });
+      return res
+        .status(401)
+        .json(new ApiResponse(false, 'Authentication required'));
     }
 
     if (!allowedRoles.includes(req.user.activeRole)) {
-      return res.status(403).json({
-        error: 'Insufficient permissions',
-        required: allowedRoles,
-        current: req.user.activeRole,
-      });
+      return res
+        .status(403)
+        .json(new ApiResponse(false, 'Insufficient permissions'));
     }
 
     next();

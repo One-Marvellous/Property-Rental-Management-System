@@ -184,7 +184,7 @@ class AdminService {
     const {
       page = 1,
       limit = LIMIT,
-      status = manager_application_status.pending,
+      status,
       order = OrderStatus.DESC,
       from,
       to,
@@ -248,7 +248,18 @@ class AdminService {
     if (!application) {
       throw new ApiError(404, 'Manager application not found');
     }
-    return application;
+    return {
+      application: {
+        id: application.id,
+        created_at: application.created_at,
+        status: application.status,
+        user_id: application.user_id,
+        reason: application.reason,
+        reviewed_by: application.reviewed_by,
+        reviewed_at: application.reviewed_at,
+      },
+      applicant: application.users_property_manager_applications_user_idTousers,
+    };
   }
 
   /**
