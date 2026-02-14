@@ -7,7 +7,7 @@ application designed to manage the complete lifecycle of property
 rentals --- from property listing and booking requests to rental
 activation and structured payment tracking.
 
-It supports **multi-role access control** (Admin, Tenant, and Property
+It supports **multi-role access control** (Admin, User, and Property
 Manager) with secure authentication, role switching, and an approval
 workflow for property manager applications. The system is built as a
 **production-ready MVP** with a normalized PostgreSQL schema, RESTful
@@ -65,7 +65,14 @@ hotels, and event spaces.
 
 ## System Lifecycle Flow
 
-    Property Listed → Booking Request → Manager Approval → Rental Created → Payments Tracked → Rental Completed/Terminated
+```mermaid
+graph LR
+  A[Property Listed] --> B[Booking Request]
+  B --> C[Manager Approval]
+  C --> D[Rental Created]
+  D --> E[Payment Tracked]
+  E --> F[Rental Completed/Terminated]
+```
 
 ---
 
@@ -76,8 +83,7 @@ hotels, and event spaces.
 - Manage users and roles
 - Approve/reject property manager applications
 - Manage categories
-- View all bookings, rentals, and payments
-- Delete any property
+- Suspend any property
 
 ### Property Manager
 
@@ -109,7 +115,9 @@ hotels, and event spaces.
 
    ```bash
    git clone https://github.com/One-Marvellous/Property-Rental-Management-System.git
+
    cd property-rental-management-system
+
    git checkout development
    ```
 
@@ -198,25 +206,9 @@ hotels, and event spaces.
    \i scripts/prm.sql
    ```
 
-   > **Alternative**: Let Prisma handle schema initialization. After setting `DATABASE_URL` in `.env`, Prisma will introspect and pull the schema (steps 5-6 below).
+   > **Alternative**: Let Prisma handle schema initialization. After setting `DATABASE_URL` in `.env`, Prisma will introspect and pull the schema (steps 6-7 below).
 
-5. **Pull database schema into Prisma**
-
-   Introspect the database to generate the Prisma schema:
-
-   ```bash
-   npx prisma db pull
-   ```
-
-6. **Generate Prisma Client**
-
-   Generate the Prisma Client to enable database access in your application:
-
-   ```bash
-   npx prisma generate
-   ```
-
-7. **Configure environment variables**
+5. **Configure environment variables**
    - Copy the sample environment file:
      ```bash
      cp .env.sample .env
@@ -229,6 +221,7 @@ hotels, and event spaces.
      PORT=3000
      DATABASE_URL=postgresql://postgres:password@localhost:5432/prm
      NODE_ENV=development
+     ...
      ```
 
      **For Cloud PostgreSQL (Render or Neon):**
@@ -237,7 +230,24 @@ hotels, and event spaces.
      PORT=3000
      DATABASE_URL=postgresql://user:password@host:port/database
      NODE_ENV=development
+     ...
      ```
+
+6. **Pull database schema into Prisma**
+
+   Introspect the database to generate the Prisma schema:
+
+   ```bash
+   npx prisma db pull
+   ```
+
+7. **Generate Prisma Client**
+
+   Generate the Prisma Client to enable database access in your application:
+
+   ```bash
+   npx prisma generate
+   ```
 
 8. **Seed the database**
 
@@ -269,6 +279,8 @@ Once the server is running, visit:
 http://localhost:3000/api/doc
 ```
 
+> **Note**: This assumes your port is set to 3000 in `.env`
+
 The Swagger UI interface allows you to:
 
 - View all available endpoints with detailed descriptions
@@ -283,6 +295,7 @@ The Swagger UI interface allows you to:
 - **Admin**: `/api/v1/admin` - User management, category management, approvals
 - **Property Manager**: `/api/v1/property-manager` - Property and booking management
 - **User**: `/api/v1/user` - User profile and rental information
+- **Property**: `/api/v1/properties` - Browse properties related information
 - **Health**: `/api/v1/health` - Server health check
 
 ## Database Schema
@@ -298,6 +311,8 @@ The system uses the following main entities:
 - **bookings**: Property booking requests
 - **rentals**: Active rental agreements
 - **payments**: Payment transactions and tracking
+
+> **Note**: for more information about the relationship between each table check out [ER Diagram](<docs/pdf/Property Rental Management system ER Diagram.pdf>)
 
 ## Development Workflow
 
@@ -315,6 +330,14 @@ To check if files need formatting without modifying them:
 npm run format:check
 ```
 
+### Code Quality
+
+Before committing your code, check for errors withing code:
+
+```bash
+npm run lint
+```
+
 ### Project Structure
 
 ```
@@ -324,6 +347,7 @@ npm run format:check
 │   ├── config/          # Configuration files
 │   ├── controllers/     # Request handlers
 │   ├── routes/          # API route definitions
+│   ├── models/          # Type definitions
 │   ├── middlewares/     # Express middleware functions
 │   ├── services/        # Business logic and data access layer
 │   ├── validators/      # Input validation logic
@@ -348,7 +372,7 @@ npm run format:check
 
 1. **Always install dependencies** with `npm i` before starting development
 2. **Set up your environment variables** by creating a `.env` file from `.env.sample`
-3. **Format your code** using `npm run format` before pushing changes
+3. **Format your code** using `npm run format` and check for errors withing code using `npm run lint` before pushing changes
 4. **Never commit** the `.env` file (it's in `.gitignore`)
 5. **Use descriptive commit messages** and keep commits atomic
 
@@ -366,16 +390,6 @@ git commit -m "Description of changes"
 # Push to remote
 git push origin <branch-name>
 ```
-
-## Documentation
-
-Full API documentation and additional setup guides are available in:
-
-- `/docs` folder
-- Check [project documentation site](https://www.postman.com/one-marvellous/property-management-system) for detailed API endpoints
-- Database schema diagram is available in `scripts/prm.sql`
-
-For detailed information on the database structure, refer to the SQL schema file at `scripts/prm.sql`.
 
 ## Troubleshooting
 
@@ -400,8 +414,9 @@ For detailed information on the database structure, refer to the SQL schema file
 1. Create a feature branch from `development`
 2. Make your changes and test thoroughly
 3. Format your code with `npm run format`
-4. Commit with clear, descriptive messages
-5. Submit a pull request
+4. Check for any errors withing your code with `npm run lint`
+5. Commit with clear, descriptive messages
+6. Submit a pull request
 
 ## License
 
@@ -409,4 +424,10 @@ ISC
 
 ## Support
 
-For issues, questions, or contributions, please open an issue or contact the development team.
+For issues, questions, or contributions, please open an issue or contact the development team or TS Academy
+
+- TS Academy: https://tsacademyonline.com
+- Marvellous Fawole — https://github.com/One-Marvellous
+- dax-side — https://github.com/dax-side
+- JOHNNY-OBA — https://github.com/JOHNNY-OBA
+- Sunday Alabi — https://github.com/iamalabisunday
