@@ -146,34 +146,6 @@ class AdminController {
     }
   }
 
-  async getManagerApplicationsById(req, res) {
-    try {
-      const applicationId = req.params.id;
-      const result =
-        await adminService.getManagerApplicationById(applicationId);
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Manager application retrieved successfully',
-            result
-          )
-        );
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error fetching manager application:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to fetch manager application'));
-      }
-    }
-  }
-
   async approveMangerApplication(req, res) {
     try {
       const applicationId = req.params.id;

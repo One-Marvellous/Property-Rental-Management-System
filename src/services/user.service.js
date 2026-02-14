@@ -2,12 +2,15 @@ import { prisma } from '../config/db.js';
 import ApiError from '../utils/apiError.js';
 import { LIMIT } from '../constants/pagination.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
-import { PropertyApprovalStatus } from '../models/property.approval.status.js';
-import { ManagerApplicationStatus } from '../models/manager.application.status.js';
-import { PropertyAvailabilityStatus } from '../models/property.availability.status.js';
 import { calculateFutureDate } from '../utils/calculateFutureDate.js';
 import { UserRole } from '../models/roles.js';
 import { OrderStatus } from '../models/order.js';
+import { jwt } from '../config/jwt.js';
+import {
+  property_approval_status,
+  manager_application_status,
+  property_availability_status,
+} from '../generated/prisma/index.js';
 
 /**
  * UserService handles business logic available to regular users
@@ -17,83 +20,61 @@ import { OrderStatus } from '../models/order.js';
  */
 class UserService {
   /**
-   * Retrieve available properties with pagination and optional date filtering
-   * @param {object} filters - Query filters
-   * @param {number} [filters.page=1] - Page number
-   * @param {number} [filters.limit=LIMIT] - Items per page
-   * @param {string} [filters.from] - ISO start date to filter created_at
-   * @param {string} [filters.to] - ISO end date to filter created_at
-   * @param {string} [filters.order='desc'] - Sort order for created_at
-   * @returns {Promise<object>} Paginated response containing properties
-   * @throws {ApiError} when database query fails
+   * Switch a user's role (e.g., from regular user to property manager)
+   * @param {string} data.userId - ID of the user whose role is to be switched
+   * @param {string} data.newRole - The new role to assign to the user (e.g., 'user', 'manager')
+   * @returns {Promise<object>} Updated user data and new JWT tokens
+   * @throws {ApiError} Throws ApiError for invalid role, insufficient permissions, or revoked roles
    */
-  async getProperties(filters) {
-    const {
-      page = 1,
-      limit = LIMIT,
-      from,
-      to,
-      order = OrderStatus.DESC,
-    } = filters;
-
-    // Calculate pagination parameters
-    const { skip, take } = getPagination({ page, limit });
-
-    // Build query conditions
-    const where = {};
-
-    // Apply date range filter if provided
-    if (from || to) {
-      where.created_at = {};
-
-      if (from) where.created_at.gte = new Date(from);
-      if (to) where.created_at.lte = new Date(to);
+  async switchUserRole(data) {
+    const { userId, newRole } = data;
+    // check if newRole is valid
+    if (!Object.values(UserRole).includes(newRole)) {
+      throw new ApiError(400, 'Invalid role specified');
     }
 
-    // Apply availability_status
-    where.availability_status = PropertyAvailabilityStatus.AVAILABLE;
-
-    // Apply approval_status
-    where.approval_status = PropertyApprovalStatus.APPROVED;
-
-    // Fetch properties with pagination and filters
-    const properties = await prisma.properties.findMany({
-      where,
-      orderBy: { created_at: order },
-      skip,
-      take,
-    });
-
-    // Get total count for pagination metadata
-    const total = await prisma.properties.count({ where });
-
-    return buildPaginatedResponse({
-      data: properties,
-      total,
-      page,
-      limit,
-    });
-  }
-
-  /**
-   * Get a single property by ID including owner information
-   * @param {string} propertyId - ID of the property
-   * @returns {Promise<object>} Property object
-   * @throws {ApiError} If property not found (404)
-   */
-  async getPropertyById(propertyId) {
-    const property = await prisma.properties.findUnique({
-      where: { id: propertyId },
-      include: {
-        users: {
-          omit: { created_at: true, password_hash: true, is_suspended: true },
-        },
+    // check if the user have been assigned the manager role
+    const existingRole = await prisma.user_roles.findFirst({
+      where: {
+        user_id: userId,
+        roles: { name: newRole },
       },
     });
 
-    if (!property) throw new ApiError(404, 'Property not found');
+    if (!existingRole) {
+      throw new ApiError(
+        403,
+        `User have no permission to switch to ${newRole} role`
+      );
+    }
 
-    return property;
+    // check if the role is revoked
+
+    if (existingRole.revoked_at) {
+      throw new ApiError(
+        403,
+        `User's ${newRole} role has been revoked and cannot be switched to`
+      );
+    }
+
+    // get user
+    const user = await prisma.users.findUnique({
+      where: { id: userId },
+      omit: { password_hash: true, is_suspended: true },
+    });
+
+    // generate new token with the new role
+    const tokens = jwt.create({
+      userId: user.id,
+      activeRole: newRole,
+    });
+
+    //   Return the new tokens and user info
+    return {
+      user,
+      accessToken: tokens.accessToken,
+      refreshToken: tokens.refreshToken,
+    };
   }
 
   /**
@@ -116,12 +97,14 @@ class UserService {
       throw new ApiError(404, 'Property not found');
     }
     // Ensure property is approved
-    if (property.approval_status !== PropertyApprovalStatus.APPROVED) {
+    if (property.approval_status !== property_approval_status.approved) {
       throw new ApiError(400, 'Only approved property can be booked');
     }
 
     // Ensure property availability_status is available
-    if (property.availability_status !== PropertyAvailabilityStatus.AVAILABLE) {
+    if (
+      property.availability_status !== property_availability_status.available
+    ) {
       throw new ApiError(400, 'Only available property can be booked');
     }
 
@@ -143,7 +126,7 @@ class UserService {
         end_date: endDate,
         proposed_amount: proposedAmount,
       },
-      omit: { created_at: true, cancellation_reason: true, cancelled_at: true },
+      omit: { cancellation_reason: true, cancelled_at: true },
     });
 
     return booking;
@@ -158,10 +141,11 @@ class UserService {
    * @param {string} filters.from - Start date filter (ISO format)
    * @param {string} filters.to - End date filter (ISO format)
    * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
+   * @param {string} filters.status - Booking status filter (optional) [booking_status]
    * @returns {Promise<object>} Paginated response containing user's bookings
    * @throws {ApiError} If no bookings are found for the user (404)
    */
-  async getBookingsByUserId(filters) {
+  async getUserBookings(filters) {
     const {
       userId,
       page = 1,
@@ -169,6 +153,7 @@ class UserService {
       from,
       to,
       order = OrderStatus.DESC,
+      status,
     } = filters;
 
     // Calculate pagination parameters
@@ -187,6 +172,11 @@ class UserService {
 
     // Apply user_id filter
     where.user_id = userId;
+
+    // Apply status filter if provided
+    if (status) {
+      where.status = status;
+    }
 
     const bookings = await prisma.bookings.findMany({
       where,
@@ -239,7 +229,21 @@ class UserService {
     if (!booking) {
       throw new ApiError(404, 'Booking not found');
     }
-    return booking;
+    return {
+      booking: {
+        id: booking.id,
+        user_id: booking.user_id,
+        property_id: booking.property_id,
+        start_date: booking.start_date,
+        end_date: booking.end_date,
+        proposed_amount: booking.proposed_amount,
+        status: booking.status,
+        cancellation_reason: booking.cancellation_reason,
+        cancelled_at: booking.cancelled_at,
+        created_at: booking.created_at,
+      },
+      property: booking.properties,
+    };
   }
 
   /**
@@ -247,14 +251,16 @@ class UserService {
    * @param {object} data
    * @param {string} data.userId - ID of the user who owns the booking
    * @param {string} data.reason - Cancellation reason
+   * @param {string} data.bookingId - ID of the booking to cancel
    * @throws {ApiError} If booking not found or already cancelled
    */
   async cancelBooking(data) {
-    const { userId, reason } = data;
+    const { userId, reason, bookingId } = data;
     //    check for booking
     const booking = await prisma.bookings.findFirst({
       where: {
         user_id: userId,
+        id: bookingId,
       },
     });
 
@@ -318,7 +324,6 @@ class UserService {
     // create application
     const application = await prisma.property_manager_applications.create({
       data: { user_id: userId, reason },
-      omit: { reviewed_at: true, reviewed_by: true, status: true },
     });
     return application;
   }
@@ -333,7 +338,7 @@ class UserService {
     const application = await prisma.property_manager_applications.findFirst({
       where: {
         user_id: userId,
-        status: ManagerApplicationStatus.PENDING,
+        status: manager_application_status.pending,
       },
     });
 
@@ -344,17 +349,17 @@ class UserService {
     // cancel the application
     await prisma.property_manager_applications.update({
       where: { id: application.id },
-      data: { status: ManagerApplicationStatus.CANCELLED },
+      data: { status: manager_application_status.cancelled },
     });
   }
 
   /**
-   * Get the pending manager application for a user
+   * Get the latest pending manager application for a user
    * @param {string} userId - ID of the user
    * @returns {Promise<object>} The pending application
    * @throws {ApiError} If application not found or not pending
    */
-  async getManagerApplication(userId) {
+  async getLatestManagerApplication(userId) {
     const application = await prisma.property_manager_applications.findFirst({
       where: { user_id: userId },
       omit: { reviewed_at: true, reviewed_by: true },
@@ -363,7 +368,7 @@ class UserService {
       throw new ApiError(404, 'Property manager application not found');
     }
 
-    if (application.status !== ManagerApplicationStatus.PENDING) {
+    if (application.status !== manager_application_status.pending) {
       throw new ApiError(400, 'No pending property manager application found');
     }
     return application;

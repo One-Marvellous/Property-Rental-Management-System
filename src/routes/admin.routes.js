@@ -23,11 +23,6 @@ router.delete('/categories/:id', adminController.deleteCategory);
 
 router.get('/manager-applications', adminController.getManagerApplications);
 
-router.get(
-  '/manager-applications/:id',
-  adminController.getManagerApplicationsById
-);
-
 router.patch(
   '/manager-applications/:id/approve',
   adminController.approveMangerApplication
