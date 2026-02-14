@@ -22,7 +22,6 @@ CREATE TYPE payment_category AS ENUM ('deposit','full_payment','part_payment','m
 CREATE TYPE property_approval_status AS ENUM ('draft','pending','approved','rejected','suspended');
 
 
-
 -- ================= USERS & ROLES =================
 
 CREATE TABLE users (
@@ -35,6 +34,11 @@ CREATE TABLE users (
   is_suspended BOOLEAN NOT NULL DEFAULT FALSE,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- Added indexes
+CREATE INDEX idx_users_is_suspended ON users(is_suspended);
+CREATE INDEX idx_users_created_at ON users(created_at);
+
 
 CREATE TABLE roles (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -61,6 +65,14 @@ CREATE TABLE user_roles (
 CREATE INDEX idx_user_roles_active
 ON user_roles(user_id, role_id)
 WHERE revoked_at IS NULL;
+
+-- Added indexes
+CREATE INDEX idx_user_roles_role_id_active
+ON user_roles(role_id)
+WHERE revoked_at IS NULL;
+
+CREATE INDEX idx_user_roles_user_id
+ON user_roles(user_id);
 
 
 -- ================= MANAGER APPLICATIONS =================
@@ -89,10 +101,13 @@ CREATE TABLE property_manager_applications (
 CREATE INDEX idx_manager_app_status_created
 ON property_manager_applications(status, created_at);
 
-
 CREATE UNIQUE INDEX idx_unique_pending_application
 ON property_manager_applications(user_id)
 WHERE status = 'pending';
+
+-- Added index
+CREATE INDEX idx_manager_app_user_created
+ON property_manager_applications(user_id, created_at DESC);
 
 
 -- ================= PROPERTY STRUCTURE =================
@@ -126,9 +141,9 @@ CREATE TABLE properties (
   approved_at TIMESTAMP,
   rejection_reason TEXT,
 
-  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
-   CHECK (
+  CHECK (
     (approval_status IN ('draft','pending') AND approved_by IS NULL AND approved_at IS NULL)
     OR
     (approval_status = 'approved' AND approved_by IS NOT NULL AND approved_at IS NOT NULL)
@@ -136,6 +151,15 @@ CREATE TABLE properties (
     (approval_status IN ('rejected','suspended') AND approved_by IS NOT NULL)
   )
 );
+
+-- Added indexes
+CREATE INDEX idx_properties_approval_availability
+ON properties(approval_status, availability_status);
+
+CREATE INDEX idx_properties_manager_id ON properties(manager_id);
+CREATE INDEX idx_properties_category_id ON properties(category_id);
+CREATE INDEX idx_properties_city_state ON properties(city, state);
+CREATE INDEX idx_properties_created_at ON properties(created_at);
 
 
 CREATE TABLE property_images (
@@ -146,6 +170,10 @@ CREATE TABLE property_images (
   image_url VARCHAR NOT NULL,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- Added index
+CREATE INDEX idx_property_images_property_id
+ON property_images(property_id);
 
 
 -- ================= BOOKINGS =================
@@ -180,6 +208,15 @@ EXCLUDE USING gist (
 )
 WHERE (status IN ('pending','approved'));
 
+-- Added indexes
+CREATE INDEX idx_bookings_user_id_created
+ON bookings(user_id, created_at DESC);
+
+CREATE INDEX idx_bookings_property_id_dates
+ON bookings(property_id, start_date, end_date);
+
+CREATE INDEX idx_bookings_status ON bookings(status);
+
 
 -- ================= RENTALS =================
 
@@ -203,6 +240,11 @@ CREATE TABLE rentals (
 
   CHECK (lease_end >= lease_start)
 );
+
+-- Added indexes
+CREATE INDEX idx_rentals_user_id ON rentals(user_id);
+CREATE INDEX idx_rentals_property_id ON rentals(property_id);
+CREATE INDEX idx_rentals_status ON rentals(status);
 
 
 -- ================= PAYMENTS =================
@@ -232,3 +274,9 @@ CREATE TABLE payments (
 );
 
 CREATE INDEX idx_payments_rental_id ON payments(rental_id);
+
+-- Added indexes
+CREATE INDEX idx_payments_rental_created
+ON payments(rental_id, created_at DESC);
+
+CREATE INDEX idx_payments_status ON payments(payment_status);

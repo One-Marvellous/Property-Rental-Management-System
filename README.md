@@ -312,7 +312,7 @@ The system uses the following main entities:
 - **rentals**: Active rental agreements
 - **payments**: Payment transactions and tracking
 
-> **Note**: for more information about the relationship between each table check out [ER Diagram](<docs/pdf/Property Rental Management system ER Diagram.pdf>)
+![System Flow](<docs/ER diagram.svg>)
 
 ## Development Workflow
 
