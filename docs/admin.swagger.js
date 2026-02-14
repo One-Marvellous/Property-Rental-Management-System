@@ -39,13 +39,13 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PaginatedResponse'
+ *               $ref: '#/components/schemas/PaginatedUsers'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -71,24 +71,25 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *       404:
- *         description: User not found or already suspended
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ApiResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: User not found or already suspended
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       409:
+ *         description: User is already suspended
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -123,19 +124,19 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Category'
+ *               $ref: '#/components/schemas/CategoryResponse'
  *       409:
  *         description: Category with this name already exists
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -160,7 +161,7 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
+ *             $type: object
  *             required:
  *               - description
  *             properties:
@@ -173,19 +174,19 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Category'
+ *               $ref: '#/components/schemas/CategoryResponse'
  *       404:
  *         description: Category not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -211,24 +212,19 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
  *         description: Category not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ApiResponse'
  */
 
 /**
@@ -258,7 +254,7 @@
  *         name: status
  *         schema:
  *           type: string
- *           enum: [pending, approved, rejected]
+ *           enum: [pending, approved, rejected, suspended]
  *         description: Filter by application status
  *       - in: query
  *         name: from
@@ -278,14 +274,14 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PaginatedResponse'
+ *               $ref: '#/components/schemas/PaginatedManagerApplicationResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
- */
+ *               $ref: '#/components/schemas/ErrorResponse'
+
 
 /**
  * @swagger
@@ -310,19 +306,19 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/ManagerApplication'
+ *               $ref: '#/components/schemas/ManagerApplicationDetailResponse'
  *       404:
  *         description: Application not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -348,30 +344,25 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *       404:
- *         description: Application not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Application is not in pending status
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Application not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -397,80 +388,25 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
- *       404:
- *         description: Application not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ApiResponse'
  *       400:
  *         description: Application is not in pending status
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
- */
-
-/**
- * @swagger
- * /api/v1/admin/property-submissions:
- *   get:
- *     summary: Get property submissions
- *     description: Retrieve pending property submissions awaiting approval with pagination and date filtering. Admin only.
- *     tags:
- *       - Admin
- *     security:
- *       - BearerAuth: []
- *     parameters:
- *       - in: query
- *         name: page
- *         schema:
- *           type: integer
- *           default: 1
- *         description: Page number for pagination
- *       - in: query
- *         name: limit
- *         schema:
- *           type: integer
- *           default: 20
- *         description: Number of items per page
- *       - in: query
- *         name: from
- *         schema:
- *           type: string
- *           format: date-time
- *         description: Start date filter (ISO format)
- *       - in: query
- *         name: to
- *         schema:
- *           type: string
- *           format: date-time
- *         description: End date filter (ISO format)
- *     responses:
- *       200:
- *         description: Properties retrieved successfully
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Application not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/PaginatedResponse'
- *       401:
- *         description: Unauthorized
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -496,30 +432,25 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
+ *               $ref: '#/components/schemas/ApiResponse'
  *       404:
  *         description: Property not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       400:
  *         description: Property is not in pending status
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -544,13 +475,7 @@
  *       content:
  *         application/json:
  *           schema:
- *             type: object
- *             required:
- *               - rejectionReason
- *             properties:
- *               rejectionReason:
- *                 type: string
- *                 example: Property does not meet quality standards
+ *             $ref: '#/components/schemas/ApiResponse'
  *     responses:
  *       200:
  *         description: Property rejected successfully
@@ -563,24 +488,24 @@
  *                   type: boolean
  *                 message:
  *                   type: string
- *       404:
- *         description: Property not found
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Error'
  *       400:
  *         description: Property is not in pending status
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       404:
+ *         description: Property not found
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -606,28 +531,23 @@
  *         content:
  *           application/json:
  *             schema:
- *               type: object
- *               properties:
- *                 success:
- *                   type: boolean
- *                 message:
- *                   type: string
+ *               $ref: '#/components/schemas/ApiResponse'
  *       404:
  *         description: Property not found
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       400:
  *         description: Property is not in approved status
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       401:
  *         description: Unauthorized
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */

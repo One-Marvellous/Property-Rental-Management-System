@@ -2,10 +2,12 @@ import { prisma } from '../config/db.js';
 import { OrderStatus } from '../models/order.js';
 import ApiError from '../utils/apiError.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
-import { ManagerApplicationStatus } from '../models/manager.application.status.js';
 import { UserRole } from '../models/roles.js';
-import { PropertyApprovalStatus } from '../models/property.approval.status.js';
 import { LIMIT } from '../constants/pagination.js';
+import {
+  property_approval_status,
+  manager_application_status,
+} from '../generated/prisma/index.js';
 
 /**
  * AdminService class handles all admin-related operations
@@ -172,7 +174,7 @@ class AdminService {
    * @param {object} filters - Filter options
    * @param {number} filters.page - Page number (default: 1)
    * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
-   * @param {string} filters.status - Application status to filter by (optional) typed as ManagerApplicationStatus enum
+   * @param {string} filters.status - Application status to filter by (optional) typed as manager_application_status enum
    * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
    * @param {string} filters.from - Start date filter (ISO format)
    * @param {string} filters.to - End date filter (ISO format)
@@ -182,7 +184,7 @@ class AdminService {
     const {
       page = 1,
       limit = LIMIT,
-      status = ManagerApplicationStatus.PENDING,
+      status,
       order = OrderStatus.DESC,
       from,
       to,
@@ -246,7 +248,18 @@ class AdminService {
     if (!application) {
       throw new ApiError(404, 'Manager application not found');
     }
-    return application;
+    return {
+      application: {
+        id: application.id,
+        created_at: application.created_at,
+        status: application.status,
+        user_id: application.user_id,
+        reason: application.reason,
+        reviewed_by: application.reviewed_by,
+        reviewed_at: application.reviewed_at,
+      },
+      applicant: application.users_property_manager_applications_user_idTousers,
+    };
   }
 
   /**
@@ -266,7 +279,7 @@ class AdminService {
     }
 
     // Ensure application is in pending status
-    if (application.status !== ManagerApplicationStatus.PENDING) {
+    if (application.status !== manager_application_status.pending) {
       throw new ApiError(400, 'Only pending applications can be approved');
     }
 
@@ -276,7 +289,7 @@ class AdminService {
       await tx.property_manager_applications.update({
         where: { id: applicationId },
         data: {
-          status: ManagerApplicationStatus.APPROVED,
+          status: manager_application_status.approved,
           reviewed_by: reviewerId,
           reviewed_at: new Date(),
         },
@@ -315,7 +328,7 @@ class AdminService {
     }
 
     // Ensure application is in pending status
-    if (application.status !== ManagerApplicationStatus.PENDING) {
+    if (application.status !== manager_application_status.pending) {
       throw new ApiError(400, 'Only pending applications can be rejected');
     }
 
@@ -323,7 +336,7 @@ class AdminService {
     await prisma.property_manager_applications.update({
       where: { id: applicationId },
       data: {
-        status: ManagerApplicationStatus.REJECTED,
+        status: manager_application_status.rejected,
         reviewed_by: reviewerId,
         reviewed_at: new Date(),
       },
@@ -364,9 +377,7 @@ class AdminService {
     }
 
     //   Apply filter to only include properties with pending approval status
-    where.approval_status = PropertyApprovalStatus.PENDING;
-
-    console.log(where);
+    where.approval_status = property_approval_status.pending;
 
     // Fetch property submissions sorted by newest first
     const submissions = await prisma.properties.findMany({
@@ -403,7 +414,7 @@ class AdminService {
     }
 
     // Ensure property is in pending approval status
-    if (property.approval_status !== PropertyApprovalStatus.PENDING) {
+    if (property.approval_status !== property_approval_status.pending) {
       throw new ApiError(400, 'Only pending properties can be approved');
     }
 
@@ -411,7 +422,7 @@ class AdminService {
     await prisma.properties.update({
       where: { id: propertyId },
       data: {
-        approval_status: PropertyApprovalStatus.APPROVED,
+        approval_status: property_approval_status.approved,
         approved_at: new Date(),
         approved_by: reviewerId,
       },
@@ -434,7 +445,7 @@ class AdminService {
     }
 
     // Ensure property is in pending approval status
-    if (property.approval_status !== PropertyApprovalStatus.PENDING) {
+    if (property.approval_status !== property_approval_status.pending) {
       throw new ApiError(400, 'Only pending properties can be rejected');
     }
 
@@ -442,7 +453,7 @@ class AdminService {
     await prisma.properties.update({
       where: { id: propertyId },
       data: {
-        approval_status: PropertyApprovalStatus.REJECTED,
+        approval_status: property_approval_status.rejected,
         rejection_reason: rejectionReason,
       },
     });
@@ -463,7 +474,7 @@ class AdminService {
     }
 
     // Ensure property is approved before suspension
-    if (property.approval_status !== PropertyApprovalStatus.APPROVED) {
+    if (property.approval_status !== property_approval_status.approved) {
       throw new ApiError(400, 'Only approved properties can be suspended');
     }
 
@@ -471,7 +482,7 @@ class AdminService {
     await prisma.properties.update({
       where: { id: propertyId },
       data: {
-        approval_status: PropertyApprovalStatus.SUSPENDED,
+        approval_status: property_approval_status.suspended,
       },
     });
   }

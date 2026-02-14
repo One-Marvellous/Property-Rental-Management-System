@@ -15,8 +15,9 @@
  *             required:
  *               - email
  *               - password
- *               - first_name
- *               - last_name
+ *               - firstName
+ *               - lastName
+ *               - phoneNumber
  *             properties:
  *               email:
  *                 type: string
@@ -27,25 +28,39 @@
  *                 format: password
  *                 minLength: 8
  *                 example: SecurePass123!
- *               first_name:
+ *               firstName:
  *                 type: string
  *                 example: John
- *               last_name:
+ *               lastName:
  *                 type: string
  *                 example: Doe
+ *               phoneNumber:
+ *                 type: string
+ *                 example: "+1234567890"
  *     responses:
  *       201:
  *         description: User registered successfully
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
- *       400:
- *         description: Validation error or user already exists
+ *               allOf:
+ *                 - $ref: '#/components/schemas/AuthResponse'
+ *                 - type: object
+ *                   properties:
+ *                     message:
+ *                       example: User registered successfully
+ *       409:
+ *         description: Email already registered
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       500:
+ *         description: Default role not found or Registration failed
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -80,13 +95,24 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/AuthResponse'
+ *               allOf:
+ *                 - $ref: '#/components/schemas/AuthResponse'
+ *                 - type: object
+ *                   properties:
+ *                     message:
+ *                       example: Login successful
  *       401:
  *         description: Invalid credentials
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       403:
+ *         description: Account suspended
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 
 /**
@@ -121,5 +147,5 @@
  *         content:
  *           application/json:
  *             schema:
- *               $ref: '#/components/schemas/Error'
+ *               $ref: '#/components/schemas/ErrorResponse'
  */

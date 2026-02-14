@@ -69,6 +69,10 @@ class AuthService {
           password_hash: passwordHash,
           phone_number: phoneNumber,
         },
+        omit: {
+          is_suspended: true,
+          password_hash: true,
+        },
       });
 
       await tx.user_roles.create({
@@ -91,13 +95,8 @@ class AuthService {
      */
     return {
       user: {
-        userId: newUser.id,
-        email: newUser.email,
-        firstName: newUser.first_name,
-        lastName: newUser.last_name,
-        phoneNumber: newUser.phone_number,
+        ...newUser,
         activeRole: UserRole.USER,
-        createdAt: newUser.created_at,
       },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
@@ -171,13 +170,13 @@ class AuthService {
 
     return {
       user: {
-        userId: user.id,
+        id: user.id,
         email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        phoneNumber: user.phone_number,
+        first_name: user.first_name,
+        last_name: user.last_name,
+        phone_number: user.phone_number,
+        created_at: user.created_at,
         activeRole: activeRole,
-        createdAt: user.created_at,
       },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,

@@ -8,6 +8,7 @@ import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import propertyManagerRoutes from './routes/propertyManager.routes.js';
 import userRoutes from './routes/user.routes.js';
+import propertyRoutes from './routes/property.routes.js';
 import globalErrorHandler from './middlewares/error.middleware.js';
 
 connectDB();
@@ -45,6 +46,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/property-manager', propertyManagerRoutes);
 app.use('/api/v1/user', userRoutes);
+app.use('/api/v1/properties', propertyRoutes);
 
 app.get('/api/v1/health', (req, res) => {
   res.status(200).json(

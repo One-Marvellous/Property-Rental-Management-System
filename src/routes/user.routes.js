@@ -8,11 +8,14 @@ import {
 
 const router = Router();
 
+router.post(
+  '/switch-role',
+  authenticateWithCustomErrors,
+  authorizeRoles(UserRole.USER, UserRole.MANAGER, UserRole.ADMIN),
+  userController.switchUserRole
+);
+
 router.use(authenticateWithCustomErrors, authorizeRoles(UserRole.USER));
-
-router.get('/properties', userController.getProperties);
-
-router.get('/properties/:id', userController.getPropertiesById);
 
 router.post('/bookings', userController.createBooking);
 
@@ -29,7 +32,7 @@ router.patch(
   userController.cancelManagerApplication
 );
 
-router.get('/manager-application', userController.getManagerApplication);
+router.get('/manager-application', userController.getLatestManagerApplication);
 
 router.get(
   '/manager-application/status',
