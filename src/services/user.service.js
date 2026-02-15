@@ -1,6 +1,6 @@
 import { prisma } from '../config/db.js';
 import ApiError from '../utils/apiError.js';
-import { LIMIT } from '../constants/pagination.js';
+import { ENV } from '../config/env.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { calculateFutureDate } from '../utils/calculateFutureDate.js';
 import { UserRole } from '../models/roles.js';
@@ -134,13 +134,13 @@ class UserService {
 
   /**
    * Retrieve bookings for a given user
-   * @param {object} filters - Filter options
+   * @param {object} filters - Query filters
+   * @param {number} [filters.page=1] - Page number
+   * @param {number} [filters.limit=ENV.LIMIT] - Items per page
+   * @param {string} [filters.from] - ISO start date to filter created_at
+   * @param {string} [filters.to] - ISO end date to filter created_at
+   * @param {string} [filters.order='desc'] - Sort order for created_at
    * @param {string} filters.userId - ID of the user
-   * @param {number} filters.page - Page number (default: 1)
-   * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
-   * @param {string} filters.from - Start date filter (ISO format)
-   * @param {string} filters.to - End date filter (ISO format)
-   * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
    * @param {string} filters.status - Booking status filter (optional) [booking_status]
    * @returns {Promise<object>} Paginated response containing user's bookings
    * @throws {ApiError} If no bookings are found for the user (404)
@@ -149,7 +149,7 @@ class UserService {
     const {
       userId,
       page = 1,
-      limit = LIMIT,
+      limit = ENV.LIMIT || 15,
       from,
       to,
       order = OrderStatus.DESC,

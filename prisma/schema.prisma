@@ -22,6 +22,10 @@ model bookings {
   properties          properties     @relation(fields: [property_id], references: [id], onUpdate: NoAction)
   users               users          @relation(fields: [user_id], references: [id], onUpdate: NoAction)
   rentals             rentals?
+
+  @@index([property_id, start_date, end_date], map: "idx_bookings_property_id_dates")
+  @@index([status], map: "idx_bookings_status")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_bookings_user_id_created")
 }
 
 model categories {
@@ -45,6 +49,8 @@ model payments {
   rentals               rentals          @relation(fields: [rental_id], references: [id], onUpdate: NoAction)
 
   @@index([rental_id], map: "idx_payments_rental_id")
+  @@index([rental_id, created_at(sort: Desc)], map: "idx_payments_rental_created")
+  @@index([payment_status], map: "idx_payments_status")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -71,6 +77,12 @@ model properties {
   users_properties_manager_idTousers  users                        @relation("properties_manager_idTousers", fields: [manager_id], references: [id], onUpdate: NoAction)
   property_images                     property_images[]
   rentals                             rentals[]
+
+  @@index([approval_status, availability_status], map: "idx_properties_approval_availability")
+  @@index([category_id], map: "idx_properties_category_id")
+  @@index([city, state], map: "idx_properties_city_state")
+  @@index([created_at], map: "idx_properties_created_at")
+  @@index([manager_id], map: "idx_properties_manager_id")
 }
 
 model property_images {
@@ -79,6 +91,8 @@ model property_images {
   image_url   String     @db.VarChar
   created_at  DateTime   @default(now()) @db.Timestamp(6)
   properties  properties @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([property_id], map: "idx_property_images_property_id")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -92,6 +106,9 @@ model property_manager_applications {
   created_at                                             DateTime                   @default(now()) @db.Timestamp(6)
   users_property_manager_applications_reviewed_byTousers users?                     @relation("property_manager_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
   users_property_manager_applications_user_idTousers     users                      @relation("property_manager_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([status, created_at], map: "idx_manager_app_status_created")
+  @@index([user_id, created_at(sort: Desc)], map: "idx_manager_app_user_created")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -110,6 +127,10 @@ model rentals {
   bookings     bookings      @relation(fields: [booking_id], references: [id], onUpdate: NoAction)
   properties   properties    @relation(fields: [property_id], references: [id], onUpdate: NoAction)
   users        users         @relation(fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([property_id], map: "idx_rentals_property_id")
+  @@index([status], map: "idx_rentals_status")
+  @@index([user_id], map: "idx_rentals_user_id")
 }
 
 model roles {
@@ -133,6 +154,7 @@ model user_roles {
   users_user_roles_user_idTousers     users     @relation("user_roles_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
 
   @@unique([user_id, role_id, revoked_at])
+  @@index([user_id], map: "idx_user_roles_user_id")
 }
 
 model users {
@@ -153,6 +175,9 @@ model users {
   user_roles_user_roles_assigned_byTousers                                       user_roles[]                    @relation("user_roles_assigned_byTousers")
   user_roles_user_roles_revoked_byTousers                                        user_roles[]                    @relation("user_roles_revoked_byTousers")
   user_roles_user_roles_user_idTousers                                           user_roles[]                    @relation("user_roles_user_idTousers")
+
+  @@index([created_at], map: "idx_users_created_at")
+  @@index([is_suspended], map: "idx_users_is_suspended")
 }
 
 enum booking_status {

@@ -273,7 +273,7 @@ const swaggerOptions = {
           properties: {
             total: { type: 'integer', example: 100 },
             page: { type: 'integer', example: 1 },
-            limit: { type: 'integer', example: 10 },
+            limit: { type: 'integer', example: 15 },
             totalPages: { type: 'integer', example: 10 },
             hasNextPage: { type: 'boolean', example: true },
             hasPrevPage: { type: 'boolean', example: false },

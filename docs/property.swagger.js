@@ -19,7 +19,7 @@
  *         name: limit
  *         schema:
  *           type: integer
- *           default: 10
+ *           default: 15
  *         description: Number of items per page
  *       - in: query
  *         name: from

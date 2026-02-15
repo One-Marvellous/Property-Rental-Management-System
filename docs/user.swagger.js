@@ -149,7 +149,7 @@
  *         description: Page number
  *       - in: query
  *         name: limit
- *         schema: { type: integer, default: 10 }
+ *         schema: { type: integer, default: 15 }
  *         description: Items per page
  *       - in: query
  *         name: from
