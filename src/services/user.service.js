@@ -388,7 +388,7 @@ class UserService {
     if (!application) {
       throw new ApiError(404, 'Property manager application not found');
     }
-    return application.status;
+    return { status: application.status };
   }
 }
 

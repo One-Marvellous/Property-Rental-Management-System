@@ -5,6 +5,11 @@ import {
   authenticateWithCustomErrors,
   authorizeRoles,
 } from '../middlewares/auth.middleware.js';
+import { zodValidation } from '../middlewares/zodValidation.middleware.js';
+import {
+  getPropertiesValidator,
+  getPropertiesByIdValidator,
+} from '../validators/property.validators.js';
 
 const router = Router();
 
@@ -13,8 +18,16 @@ router.use(
   authorizeRoles(UserRole.USER, UserRole.MANAGER, UserRole.ADMIN)
 );
 
-router.get('/', propertyController.getProperties);
+router.get(
+  '/',
+  zodValidation(getPropertiesValidator),
+  propertyController.getProperties
+);
 
-router.get('/:id', propertyController.getPropertiesById);
+router.get(
+  '/:id',
+  zodValidation(getPropertiesByIdValidator),
+  propertyController.getPropertiesById
+);
 
 export default router;

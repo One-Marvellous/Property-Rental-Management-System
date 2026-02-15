@@ -1,4 +1,3 @@
-import swaggerJsdoc from 'swagger-jsdoc';
 import {
   pricing_unit,
   property_approval_status,
@@ -6,6 +5,11 @@ import {
   booking_status,
   property_availability_status,
 } from '../generated/prisma/index.js';
+import adminDoc from '../../docs/admin.swagger.js';
+import authDoc from '../../docs/auth.swagger.js';
+import healthDoc from '../../docs/health.swagger.js';
+import propertyDoc from '../../docs/property.swagger.js';
+import userDoc from '../../docs/user.swagger.js';
 
 const swaggerOptions = {
   definition: {
@@ -174,6 +178,26 @@ const swaggerOptions = {
           },
         },
 
+        AuthRefreshData: {
+          type: 'object',
+          properties: {
+            accessToken: { type: 'string' },
+            refreshToken: { type: 'string' },
+          },
+        },
+
+        AuthRefreshResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: { $ref: '#/components/schemas/AuthRefreshData' },
+              },
+            },
+          ],
+        },
+
         AuthResponse: {
           allOf: [
             { $ref: '#/components/schemas/ApiResponse' },
@@ -253,6 +277,27 @@ const swaggerOptions = {
           ],
         },
 
+        ManagerApplicationStatusResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    status: {
+                      type: 'string',
+                      enum: Object.values(manager_application_status),
+                      example: manager_application_status.approved,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+
         CategoryResponse: {
           allOf: [
             { $ref: '#/components/schemas/ApiResponse' },
@@ -261,6 +306,20 @@ const swaggerOptions = {
               properties: {
                 data: {
                   $ref: '#/components/schemas/Category',
+                },
+              },
+            },
+          ],
+        },
+
+        BookingResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  $ref: '#/components/schemas/Booking',
                 },
               },
             },
@@ -364,8 +423,19 @@ const swaggerOptions = {
       { name: 'Health', description: 'Health check' },
     ],
   },
-
-  apis: ['./docs/*.swagger.js'],
+  // paths will be merged from dedicated docs modules below
 };
 
-export const specs = swaggerJsdoc(swaggerOptions);
+// Merge paths from individual doc modules into the final OpenAPI spec
+const mergedPaths = {
+  ...(adminDoc && adminDoc.paths ? adminDoc.paths : {}),
+  ...(authDoc && authDoc.paths ? authDoc.paths : {}),
+  ...(healthDoc && healthDoc.paths ? healthDoc.paths : {}),
+  ...(propertyDoc && propertyDoc.paths ? propertyDoc.paths : {}),
+  ...(userDoc && userDoc.paths ? userDoc.paths : {}),
+};
+
+export const specs = {
+  ...swaggerOptions.definition,
+  paths: mergedPaths,
+};
