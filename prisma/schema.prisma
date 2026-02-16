@@ -92,6 +92,8 @@ model property_manager_applications {
   created_at                                             DateTime                   @default(now()) @db.Timestamp(6)
   users_property_manager_applications_reviewed_byTousers users?                     @relation("property_manager_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
   users_property_manager_applications_user_idTousers     users                      @relation("property_manager_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
+
+  @@index([status, created_at], map: "idx_manager_app_status_created")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
