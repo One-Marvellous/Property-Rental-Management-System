@@ -90,6 +90,15 @@ class PropertyManagerService {
       throw new ApiError(404, 'Property not found');
     }
 
+    //   check if already published or pending to prevent unnecessary updates
+    if (property.approval_status === property_approval_status.pending) {
+      throw new ApiError(400, 'Property is already pending approval');
+    }
+
+    if (property.approval_status === property_approval_status.approved) {
+      throw new ApiError(400, 'Property is already approved');
+    }
+
     //   edit the approval status
     const updatedProperty = await prisma.properties.update({
       where: {
@@ -149,6 +158,11 @@ class PropertyManagerService {
 
     if (!property) {
       throw new ApiError(404, 'Property not found');
+    }
+
+    //   check if property is approved, if not throw error since edits are only allowed for approved properties
+    if (property.approval_status !== property_approval_status.approved) {
+      throw new ApiError(400, 'Only approved properties can be edited');
     }
 
     //   build a data object containing only provided fields

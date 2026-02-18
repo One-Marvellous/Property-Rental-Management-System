@@ -5,23 +5,61 @@ import {
   authenticateWithCustomErrors,
   authorizeRoles,
 } from '../middlewares/auth.middleware.js';
+import { zodValidation } from '../middlewares/zodValidation.middleware.js';
+import {
+  addPropertyValidator,
+  publishPropertyValidator,
+  editPropertyValidator,
+  removePropertyValidator,
+  getUserPropertyValidator,
+  approveBookingValidator,
+  rejectBookingValidator,
+} from '../validators/propertyManager.validators.js';
 
 const router = Router();
 
 router.use(authenticateWithCustomErrors, authorizeRoles(UserRole.MANAGER));
 
-router.post('/properties', managerController.addProperty);
+router.post(
+  '/properties',
+  zodValidation(addPropertyValidator),
+  managerController.addProperty
+);
 
-router.patch('/properties/:id/publish', managerController.publishProperty);
+router.patch(
+  '/properties/:id/publish',
+  zodValidation(publishPropertyValidator),
+  managerController.publishProperty
+);
 
-router.patch('/properties/:id', managerController.editProperty);
+router.patch(
+  '/properties/:id',
+  zodValidation(editPropertyValidator),
+  managerController.editProperty
+);
 
-router.delete('/properties/:id', managerController.removeProperty);
+router.delete(
+  '/properties/:id',
+  zodValidation(removePropertyValidator),
+  managerController.removeProperty
+);
 
-router.get('/properties/mine', managerController.getUserProperty);
+router.get(
+  '/properties/mine',
+  zodValidation(getUserPropertyValidator),
+  managerController.getUserProperty
+);
 
-router.patch('/bookings/:id/approve', managerController.approveBooking);
+router.patch(
+  '/bookings/:id/approve',
+  zodValidation(approveBookingValidator),
+  managerController.approveBooking
+);
 
-router.patch('/bookings/:id/reject', managerController.rejectBooking);
+router.patch(
+  '/bookings/:id/reject',
+  zodValidation(rejectBookingValidator),
+  managerController.rejectBooking
+);
 
 export default router;

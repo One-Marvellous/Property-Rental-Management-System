@@ -10,6 +10,7 @@ import authDoc from '../../docs/auth.swagger.js';
 import healthDoc from '../../docs/health.swagger.js';
 import propertyDoc from '../../docs/property.swagger.js';
 import userDoc from '../../docs/user.swagger.js';
+import managerDoc from '../../docs/propertyManager.swagger.js';
 
 const swaggerOptions = {
   definition: {
@@ -433,6 +434,7 @@ const mergedPaths = {
   ...(healthDoc && healthDoc.paths ? healthDoc.paths : {}),
   ...(propertyDoc && propertyDoc.paths ? propertyDoc.paths : {}),
   ...(userDoc && userDoc.paths ? userDoc.paths : {}),
+  ...(managerDoc && managerDoc.paths ? managerDoc.paths : {}),
 };
 
 export const specs = {
