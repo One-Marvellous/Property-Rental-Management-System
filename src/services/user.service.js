@@ -28,10 +28,6 @@ class UserService {
    */
   async switchUserRole(data) {
     const { userId, newRole } = data;
-    // check if newRole is valid
-    if (!Object.values(UserRole).includes(newRole)) {
-      throw new ApiError(400, 'Invalid role specified');
-    }
 
     // check if the user have been assigned the manager role
     const existingRole = await prisma.user_roles.findFirst({
