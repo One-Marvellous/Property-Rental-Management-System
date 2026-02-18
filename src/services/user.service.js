@@ -292,12 +292,13 @@ class UserService {
     const { userId, reason } = data;
 
     // check if there is no pending application
-    const existingApplication = await prisma.manager_applications.findFirst({
-      where: {
-        user_id: userId,
-        status: 'pending',
-      },
-    });
+    const existingApplication =
+      await prisma.property_manager_applications.findFirst({
+        where: {
+          user_id: userId,
+          status: manager_application_status.pending,
+        },
+      });
     if (existingApplication) {
       throw new ApiError(
         400,
@@ -320,6 +321,7 @@ class UserService {
     // create application
     const application = await prisma.property_manager_applications.create({
       data: { user_id: userId, reason },
+      omit: { reviewed_at: true, reviewed_by: true },
     });
     return application;
   }
@@ -345,7 +347,11 @@ class UserService {
     // cancel the application
     await prisma.property_manager_applications.update({
       where: { id: application.id },
-      data: { status: manager_application_status.cancelled },
+      data: {
+        status: manager_application_status.cancelled,
+        cancelled_by: userId,
+        cancelled_at: new Date(),
+      },
     });
   }
 

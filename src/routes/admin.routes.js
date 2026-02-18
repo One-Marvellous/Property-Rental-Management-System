@@ -57,6 +57,12 @@ router.get(
   adminController.getManagerApplications
 );
 
+router.get(
+  '/manager-applications/:id',
+  zodValidation(idParamValidator),
+  adminController.getManagerApplicationById
+);
+
 router.patch(
   '/manager-applications/:id/approve',
   zodValidation(idParamValidator),

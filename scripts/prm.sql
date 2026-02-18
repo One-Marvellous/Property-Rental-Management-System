@@ -89,14 +89,33 @@ CREATE TABLE property_manager_applications (
   reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
   reviewed_at TIMESTAMP,
 
+  cancelled_by UUID REFERENCES users(id) ON DELETE SET NULL,
+  cancelled_at TIMESTAMP,
+
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
   CHECK (
-    (status = 'pending' AND reviewed_by IS NULL AND reviewed_at IS NULL)
+    (status = 'pending'
+      AND reviewed_by IS NULL
+      AND reviewed_at IS NULL
+      AND cancelled_by IS NULL)
+
     OR
-    (status IN ('approved','rejected','cancelled') AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
+
+    -- Approved or rejected: must be reviewed by admin
+    (status IN ('approved','rejected')
+      AND reviewed_by IS NOT NULL
+      AND reviewed_at IS NOT NULL
+      AND cancelled_by IS NULL)
+
+    OR
+
+    -- Cancelled: can be cancelled by user OR admin
+    (status = 'cancelled'
+      AND cancelled_by IS NOT NULL)
   )
 );
+
 
 CREATE INDEX idx_manager_app_status_created
 ON property_manager_applications(status, created_at);

@@ -210,7 +210,7 @@ class AdminService {
     }
 
     // Fetch manager applications from database
-    const applications = await prisma.manager_applications.findMany({
+    const applications = await prisma.property_manager_applications.findMany({
       where,
       orderBy: { created_at: order },
       skip,
@@ -218,7 +218,7 @@ class AdminService {
     });
 
     // Get total count for pagination metadata
-    const total = await prisma.manager_applications.count({ where });
+    const total = await prisma.property_manager_applications.count({ where });
 
     return buildPaginatedResponse({
       data: applications,
@@ -234,7 +234,7 @@ class AdminService {
    * @returns {Promise<object>} Manager application with user details (excluding sensitive fields)
    * @throws {ApiError} If application not found (404)
    */
-  async getManagerApplicationsById(applicationId) {
+  async getManagerApplicationById(applicationId) {
     // Fetch application with related user info, excluding sensitive fields
     const application = await prisma.property_manager_applications.findUnique({
       where: { id: applicationId },
