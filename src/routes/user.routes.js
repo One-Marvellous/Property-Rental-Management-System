@@ -5,6 +5,15 @@ import {
   authenticateWithCustomErrors,
   authorizeRoles,
 } from '../middlewares/auth.middleware.js';
+import { zodValidation } from '../middlewares/zodValidation.middleware.js';
+import {
+  switchUserRoleValidator,
+  createBookingValidator,
+  getUserBookingsValidator,
+  getBookingByIdValidator,
+  cancelBookingValidator,
+  applyForManagerValidator,
+} from '../validators/user.validators.js';
 
 const router = Router();
 
@@ -12,20 +21,41 @@ router.post(
   '/switch-role',
   authenticateWithCustomErrors,
   authorizeRoles(UserRole.USER, UserRole.MANAGER, UserRole.ADMIN),
+  zodValidation(switchUserRoleValidator),
   userController.switchUserRole
 );
 
 router.use(authenticateWithCustomErrors, authorizeRoles(UserRole.USER));
 
-router.post('/bookings', userController.createBooking);
+router.post(
+  '/bookings',
+  zodValidation(createBookingValidator),
+  userController.createBooking
+);
 
-router.patch('/bookings/:id/cancel', userController.cancelBooking);
+router.patch(
+  '/bookings/:id/cancel',
+  zodValidation(cancelBookingValidator),
+  userController.cancelBooking
+);
 
-router.get('/bookings', userController.getUserBookings);
+router.get(
+  '/bookings',
+  zodValidation(getUserBookingsValidator),
+  userController.getUserBookings
+);
 
-router.get('/bookings/:id', userController.getBookingById);
+router.get(
+  '/bookings/:id',
+  zodValidation(getBookingByIdValidator),
+  userController.getBookingById
+);
 
-router.post('/manager-application', userController.applyForManager);
+router.post(
+  '/manager-application',
+  zodValidation(applyForManagerValidator),
+  userController.applyForManager
+);
 
 router.patch(
   '/manager-application/cancel',

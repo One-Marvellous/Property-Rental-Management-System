@@ -3,7 +3,7 @@ import { OrderStatus } from '../models/order.js';
 import ApiError from '../utils/apiError.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { UserRole } from '../models/roles.js';
-import { LIMIT } from '../constants/pagination.js';
+import { ENV } from '../config/env.js';
 import {
   property_approval_status,
   manager_application_status,
@@ -16,19 +16,19 @@ import {
 class AdminService {
   /**
    * Retrieves all users with pagination and optional date filtering
-   * @param {object} filters - Filter options
-   * @param {number} filters.page - Page number for pagination (default: 1)
-   * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
-   * @param {string} filters.from - Start date for filtering (ISO format)
-   * @param {string} filters.to - End date for filtering (ISO format)
-   * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
+   * @param {object} filters - Query filters
+   * @param {number} [filters.page=1] - Page number
+   * @param {number} [filters.limit=ENV.LIMIT] - Items per page
+   * @param {string} [filters.from] - ISO start date to filter created_at
+   * @param {string} [filters.to] - ISO end date to filter created_at
+   * @param {string} [filters.order='desc'] - Sort order for created_at
    * @returns {Promise<object>} Paginated response with users data
    * @throws {ApiError} If database query fails
    */
   async getAllUsers(filters) {
     const {
       page = 1,
-      limit = LIMIT,
+      limit = ENV.LIMIT || 15,
       from,
       to,
       order = OrderStatus.DESC,
@@ -171,19 +171,19 @@ class AdminService {
 
   /**
    * Retrieves manager applications with pagination, status filtering, and date range filtering
-   * @param {object} filters - Filter options
-   * @param {number} filters.page - Page number (default: 1)
-   * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
+   * @param {object} filters - Query filters
+   * @param {number} [filters.page=1] - Page number
+   * @param {number} [filters.limit=ENV.LIMIT] - Items per page
+   * @param {string} [filters.from] - ISO start date to filter created_at
+   * @param {string} [filters.to] - ISO end date to filter created_at
+   * @param {string} [filters.order='desc'] - Sort order for created_at
    * @param {string} filters.status - Application status to filter by (optional) typed as manager_application_status enum
-   * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
-   * @param {string} filters.from - Start date filter (ISO format)
-   * @param {string} filters.to - End date filter (ISO format)
    * @returns {Promise<object>} Paginated response with applications
    */
   async getManagerApplications(filters) {
     const {
       page = 1,
-      limit = LIMIT,
+      limit = ENV.LIMIT || 15,
       status,
       order = OrderStatus.DESC,
       from,
@@ -210,7 +210,7 @@ class AdminService {
     }
 
     // Fetch manager applications from database
-    const applications = await prisma.manager_applications.findMany({
+    const applications = await prisma.property_manager_applications.findMany({
       where,
       orderBy: { created_at: order },
       skip,
@@ -218,7 +218,7 @@ class AdminService {
     });
 
     // Get total count for pagination metadata
-    const total = await prisma.manager_applications.count({ where });
+    const total = await prisma.property_manager_applications.count({ where });
 
     return buildPaginatedResponse({
       data: applications,
@@ -234,7 +234,7 @@ class AdminService {
    * @returns {Promise<object>} Manager application with user details (excluding sensitive fields)
    * @throws {ApiError} If application not found (404)
    */
-  async getManagerApplicationsById(applicationId) {
+  async getManagerApplicationById(applicationId) {
     // Fetch application with related user info, excluding sensitive fields
     const application = await prisma.property_manager_applications.findUnique({
       where: { id: applicationId },
@@ -345,18 +345,18 @@ class AdminService {
 
   /**
    * Retrieves pending property submissions for admin review with pagination and date filtering
-   * @param {object} filters - Filter options
-   * @param {number} filters.page - Page number (default: 1)
-   * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
-   * @param {string} filters.from - Start date filter (ISO format)
-   * @param {string} filters.to - End date filter (ISO format)
-   * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
+   * @param {object} filters - Query filters
+   * @param {number} [filters.page=1] - Page number
+   * @param {number} [filters.limit=ENV.LIMIT] - Items per page
+   * @param {string} [filters.from] - ISO start date to filter created_at
+   * @param {string} [filters.to] - ISO end date to filter created_at
+   * @param {string} [filters.order='desc'] - Sort order for created_at
    * @returns {Promise<object>} Paginated response with pending property submissions
    */
   async getPropertySubmissions(filters) {
     const {
       page = 1,
-      limit = LIMIT,
+      limit = ENV.LIMIT || 15,
       from,
       to,
       order = OrderStatus.DESC,

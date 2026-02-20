@@ -1,4 +1,5 @@
 import express from 'express';
+import path from 'path';
 import swaggerUi from 'swagger-ui-express';
 import { ENV } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
@@ -39,12 +40,16 @@ app.use((req, res, next) => {
 
 app.use(express.json());
 
+// Serve uploaded files (development) so that local images can be accessed via URL
+// e.g. GET /uploads/properties/12345-image.jpg
+app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
+
 // Swagger API Documentation
 app.use('/api/doc', swaggerUi.serve, swaggerUi.setup(specs));
 
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
-app.use('/api/v1/property-manager', propertyManagerRoutes);
+app.use('/api/v1/manager', propertyManagerRoutes);
 app.use('/api/v1/user', userRoutes);
 app.use('/api/v1/properties', propertyRoutes);
 

@@ -1,4 +1,3 @@
-import swaggerJsdoc from 'swagger-jsdoc';
 import {
   pricing_unit,
   property_approval_status,
@@ -6,6 +5,12 @@ import {
   booking_status,
   property_availability_status,
 } from '../generated/prisma/index.js';
+import adminDoc from '../../docs/admin.swagger.js';
+import authDoc from '../../docs/auth.swagger.js';
+import healthDoc from '../../docs/health.swagger.js';
+import propertyDoc from '../../docs/property.swagger.js';
+import userDoc from '../../docs/user.swagger.js';
+import managerDoc from '../../docs/propertyManager.swagger.js';
 
 const swaggerOptions = {
   definition: {
@@ -174,6 +179,26 @@ const swaggerOptions = {
           },
         },
 
+        AuthRefreshData: {
+          type: 'object',
+          properties: {
+            accessToken: { type: 'string' },
+            refreshToken: { type: 'string' },
+          },
+        },
+
+        AuthRefreshResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: { $ref: '#/components/schemas/AuthRefreshData' },
+              },
+            },
+          ],
+        },
+
         AuthResponse: {
           allOf: [
             { $ref: '#/components/schemas/ApiResponse' },
@@ -207,6 +232,41 @@ const swaggerOptions = {
                   type: 'object',
                   properties: {
                     booking: { $ref: '#/components/schemas/Booking' },
+                    property: { $ref: '#/components/schemas/Property' },
+                  },
+                },
+              },
+            },
+          ],
+        },
+
+        ManagerBookingDetailResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    status: {
+                      type: 'string',
+                      enum: Object.values(booking_status),
+                    },
+                    user_id: { type: 'string' },
+                    property_id: { type: 'string' },
+                    start_date: { type: 'string', format: 'date-time' },
+                    end_date: { type: 'string', format: 'date-time' },
+                    proposed_amount: { type: 'number', format: 'float' },
+                    cancellation_reason: { type: 'string', nullable: true },
+                    cancelled_at: {
+                      type: 'string',
+                      format: 'date-time',
+                      nullable: true,
+                    },
+                    created_at: { type: 'string', format: 'date-time' },
+                    user: { $ref: '#/components/schemas/User' },
                     property: { $ref: '#/components/schemas/Property' },
                   },
                 },
@@ -253,6 +313,27 @@ const swaggerOptions = {
           ],
         },
 
+        ManagerApplicationStatusResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    status: {
+                      type: 'string',
+                      enum: Object.values(manager_application_status),
+                      example: manager_application_status.approved,
+                    },
+                  },
+                },
+              },
+            },
+          ],
+        },
+
         CategoryResponse: {
           allOf: [
             { $ref: '#/components/schemas/ApiResponse' },
@@ -267,13 +348,27 @@ const swaggerOptions = {
           ],
         },
 
+        BookingResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  $ref: '#/components/schemas/Booking',
+                },
+              },
+            },
+          ],
+        },
+
         /** ---------------- PAGINATION ---------------- */
         PaginationMeta: {
           type: 'object',
           properties: {
             total: { type: 'integer', example: 100 },
             page: { type: 'integer', example: 1 },
-            limit: { type: 'integer', example: 10 },
+            limit: { type: 'integer', example: 15 },
             totalPages: { type: 'integer', example: 10 },
             hasNextPage: { type: 'boolean', example: true },
             hasPrevPage: { type: 'boolean', example: false },
@@ -364,8 +459,20 @@ const swaggerOptions = {
       { name: 'Health', description: 'Health check' },
     ],
   },
-
-  apis: ['./docs/*.swagger.js'],
+  // paths will be merged from dedicated docs modules below
 };
 
-export const specs = swaggerJsdoc(swaggerOptions);
+// Merge paths from individual doc modules into the final OpenAPI spec
+const mergedPaths = {
+  ...(adminDoc && adminDoc.paths ? adminDoc.paths : {}),
+  ...(authDoc && authDoc.paths ? authDoc.paths : {}),
+  ...(healthDoc && healthDoc.paths ? healthDoc.paths : {}),
+  ...(propertyDoc && propertyDoc.paths ? propertyDoc.paths : {}),
+  ...(userDoc && userDoc.paths ? userDoc.paths : {}),
+  ...(managerDoc && managerDoc.paths ? managerDoc.paths : {}),
+};
+
+export const specs = {
+  ...swaggerOptions.definition,
+  paths: mergedPaths,
+};

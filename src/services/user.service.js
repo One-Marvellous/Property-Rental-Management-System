@@ -1,6 +1,6 @@
 import { prisma } from '../config/db.js';
 import ApiError from '../utils/apiError.js';
-import { LIMIT } from '../constants/pagination.js';
+import { ENV } from '../config/env.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { calculateFutureDate } from '../utils/calculateFutureDate.js';
 import { UserRole } from '../models/roles.js';
@@ -28,10 +28,6 @@ class UserService {
    */
   async switchUserRole(data) {
     const { userId, newRole } = data;
-    // check if newRole is valid
-    if (!Object.values(UserRole).includes(newRole)) {
-      throw new ApiError(400, 'Invalid role specified');
-    }
 
     // check if the user have been assigned the manager role
     const existingRole = await prisma.user_roles.findFirst({
@@ -134,13 +130,13 @@ class UserService {
 
   /**
    * Retrieve bookings for a given user
-   * @param {object} filters - Filter options
+   * @param {object} filters - Query filters
+   * @param {number} [filters.page=1] - Page number
+   * @param {number} [filters.limit=ENV.LIMIT] - Items per page
+   * @param {string} [filters.from] - ISO start date to filter created_at
+   * @param {string} [filters.to] - ISO end date to filter created_at
+   * @param {string} [filters.order='desc'] - Sort order for created_at
    * @param {string} filters.userId - ID of the user
-   * @param {number} filters.page - Page number (default: 1)
-   * @param {number} filters.limit - Items per page (default: LIMIT from pagination.js)
-   * @param {string} filters.from - Start date filter (ISO format)
-   * @param {string} filters.to - End date filter (ISO format)
-   * @param {string} filters.order - Sort order: 'asc' or 'desc' (default: DESC)
    * @param {string} filters.status - Booking status filter (optional) [booking_status]
    * @returns {Promise<object>} Paginated response containing user's bookings
    * @throws {ApiError} If no bookings are found for the user (404)
@@ -149,7 +145,7 @@ class UserService {
     const {
       userId,
       page = 1,
-      limit = LIMIT,
+      limit = ENV.LIMIT || 15,
       from,
       to,
       order = OrderStatus.DESC,
@@ -296,12 +292,13 @@ class UserService {
     const { userId, reason } = data;
 
     // check if there is no pending application
-    const existingApplication = await prisma.manager_applications.findFirst({
-      where: {
-        user_id: userId,
-        status: 'pending',
-      },
-    });
+    const existingApplication =
+      await prisma.property_manager_applications.findFirst({
+        where: {
+          user_id: userId,
+          status: manager_application_status.pending,
+        },
+      });
     if (existingApplication) {
       throw new ApiError(
         400,
@@ -324,6 +321,7 @@ class UserService {
     // create application
     const application = await prisma.property_manager_applications.create({
       data: { user_id: userId, reason },
+      omit: { reviewed_at: true, reviewed_by: true },
     });
     return application;
   }
@@ -349,7 +347,11 @@ class UserService {
     // cancel the application
     await prisma.property_manager_applications.update({
       where: { id: application.id },
-      data: { status: manager_application_status.cancelled },
+      data: {
+        status: manager_application_status.cancelled,
+        cancelled_by: userId,
+        cancelled_at: new Date(),
+      },
     });
   }
 
@@ -388,7 +390,7 @@ class UserService {
     if (!application) {
       throw new ApiError(404, 'Property manager application not found');
     }
-    return application.status;
+    return { status: application.status };
   }
 }
 

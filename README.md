@@ -70,8 +70,9 @@ graph LR
   A[Property Listed] --> B[Booking Request]
   B --> C[Manager Approval]
   C --> D[Rental Created]
-  D --> E[Payment Tracked]
-  E --> F[Rental Completed/Terminated]
+  D --> E[Payment Schedule Created]
+  E --> F[Payment Tracked]
+  F --> G[Rental Completed/Terminated]
 ```
 
 ---
@@ -233,15 +234,7 @@ graph LR
      ...
      ```
 
-6. **Pull database schema into Prisma**
-
-   Introspect the database to generate the Prisma schema:
-
-   ```bash
-   npx prisma db pull
-   ```
-
-7. **Generate Prisma Client**
+6. **Generate Prisma Client**
 
    Generate the Prisma Client to enable database access in your application:
 
@@ -249,7 +242,7 @@ graph LR
    npx prisma generate
    ```
 
-8. **Seed the database**
+7. **Seed the database**
 
    Populate the database with initial seed data (roles and default configurations):
 
@@ -259,7 +252,7 @@ graph LR
 
    > **Note**: This command is configured in `prisma.config.ts` It initializes essential data required for the application to function properly.
 
-9. **Run the application**
+8. **Run the application**
 
    ```bash
    npm run dev

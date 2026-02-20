@@ -1,6 +1,6 @@
 import { prisma } from '../config/db.js';
 import ApiError from '../utils/apiError.js';
-import { LIMIT } from '../constants/pagination.js';
+import { ENV } from '../config/env.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { OrderStatus } from '../models/order.js';
 import {
@@ -18,7 +18,7 @@ class PropertyService {
    * Retrieve available properties with pagination and optional date filtering
    * @param {object} filters - Query filters
    * @param {number} [filters.page=1] - Page number
-   * @param {number} [filters.limit=LIMIT] - Items per page
+   * @param {number} [filters.limit=ENV.LIMIT] - Items per page
    * @param {string} [filters.from] - ISO start date to filter created_at
    * @param {string} [filters.to] - ISO end date to filter created_at
    * @param {string} [filters.order='desc'] - Sort order for created_at
@@ -28,7 +28,7 @@ class PropertyService {
   async getProperties(filters) {
     const {
       page = 1,
-      limit = LIMIT,
+      limit = ENV.LIMIT || 15,
       from,
       to,
       order = OrderStatus.DESC,
@@ -115,4 +115,5 @@ class PropertyService {
   }
 }
 
+// Export singleton instance for use throughout the application
 export default new PropertyService();

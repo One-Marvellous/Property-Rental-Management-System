@@ -12,7 +12,7 @@
 import bcrypt from 'bcrypt';
 import { prisma } from '../src/config/db.js';
 import { ENV } from '../src/config/env.js';
-import { UserRole } from '../src/models/role.js';
+import { UserRole } from '../src/models/roles.js';
 
 async function main() {
   console.log('🌱 Starting database seed...');
