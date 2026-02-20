@@ -21,6 +21,8 @@ CREATE TYPE payment_category AS ENUM ('deposit','full_payment','part_payment','m
 
 CREATE TYPE property_approval_status AS ENUM ('draft','pending','approved','rejected','suspended');
 
+CREATE TYPE schedule_status AS ENUM ('pending', 'paid', 'overdue');
+
 
 -- ================= USERS & ROLES =================
 
@@ -124,9 +126,13 @@ CREATE UNIQUE INDEX idx_unique_pending_application
 ON property_manager_applications(user_id)
 WHERE status = 'pending';
 
--- Added index
+-- Added indexes
 CREATE INDEX idx_manager_app_user_created
 ON property_manager_applications(user_id, created_at DESC);
+
+-- composite index used by queries filtering on user + status
+CREATE INDEX idx_manager_app_user_status
+ON property_manager_applications(user_id, status);
 
 
 -- ================= PROPERTY STRUCTURE =================
@@ -175,6 +181,9 @@ CREATE TABLE properties (
 CREATE INDEX idx_properties_approval_availability
 ON properties(approval_status, availability_status);
 
+CREATE INDEX idx_properties_approval_availability_created
+ON properties(approval_status, availability_status, created_at);
+
 CREATE INDEX idx_properties_manager_id ON properties(manager_id);
 CREATE INDEX idx_properties_category_id ON properties(category_id);
 CREATE INDEX idx_properties_city_state ON properties(city, state);
@@ -187,12 +196,31 @@ CREATE TABLE property_images (
   property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
 
   image_url VARCHAR NOT NULL,
+  public_id VARCHAR,
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
 
 -- Added index
 CREATE INDEX idx_property_images_property_id
 ON property_images(property_id);
+
+-- Trigger function to enforce max 5 images per property
+CREATE OR REPLACE FUNCTION check_property_images_limit()
+RETURNS trigger AS $$
+BEGIN
+  PERFORM 1 FROM property_images WHERE property_id = NEW.property_id LIMIT 1;
+  -- count existing images
+  IF (SELECT COUNT(*) FROM property_images WHERE property_id = NEW.property_id) >= 5 THEN
+    RAISE EXCEPTION 'Maximum of 5 images allowed per property';
+  END IF;
+  RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
+-- Trigger that runs before insert to prevent exceeding the limit
+CREATE TRIGGER trg_check_property_images_limit
+BEFORE INSERT ON property_images
+FOR EACH ROW EXECUTE FUNCTION check_property_images_limit();
 
 
 -- ================= BOOKINGS =================
@@ -230,6 +258,9 @@ WHERE (status IN ('pending','approved'));
 -- Added indexes
 CREATE INDEX idx_bookings_user_id_created
 ON bookings(user_id, created_at DESC);
+
+CREATE INDEX idx_bookings_user_status_created
+ON bookings(user_id, status, created_at DESC);
 
 CREATE INDEX idx_bookings_property_id_dates
 ON bookings(property_id, start_date, end_date);
@@ -299,3 +330,21 @@ CREATE INDEX idx_payments_rental_created
 ON payments(rental_id, created_at DESC);
 
 CREATE INDEX idx_payments_status ON payments(payment_status);
+
+CREATE TABLE payment_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  rental_id UUID NOT NULL REFERENCES rentals(id) ON DELETE CASCADE,
+
+  due_date DATE NOT NULL,
+  amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
+
+  status schedule_status NOT NULL DEFAULT 'pending', 
+
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_schedule_rental_id ON payment_schedules(rental_id);
+CREATE INDEX idx_schedule_status ON payment_schedules(status);
+CREATE INDEX idx_schedule_due_date ON payment_schedules(due_date);
+

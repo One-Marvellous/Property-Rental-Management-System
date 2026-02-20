@@ -240,6 +240,41 @@ const swaggerOptions = {
           ],
         },
 
+        ManagerBookingDetailResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    id: { type: 'string' },
+                    status: {
+                      type: 'string',
+                      enum: Object.values(booking_status),
+                    },
+                    user_id: { type: 'string' },
+                    property_id: { type: 'string' },
+                    start_date: { type: 'string', format: 'date-time' },
+                    end_date: { type: 'string', format: 'date-time' },
+                    proposed_amount: { type: 'number', format: 'float' },
+                    cancellation_reason: { type: 'string', nullable: true },
+                    cancelled_at: {
+                      type: 'string',
+                      format: 'date-time',
+                      nullable: true,
+                    },
+                    created_at: { type: 'string', format: 'date-time' },
+                    user: { $ref: '#/components/schemas/User' },
+                    property: { $ref: '#/components/schemas/Property' },
+                  },
+                },
+              },
+            },
+          ],
+        },
+
         PropertyDetailResponse: {
           allOf: [
             { $ref: '#/components/schemas/ApiResponse' },

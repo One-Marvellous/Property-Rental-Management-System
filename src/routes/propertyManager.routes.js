@@ -12,9 +12,13 @@ import {
   editPropertyValidator,
   removePropertyValidator,
   getUserPropertyValidator,
+  getAllBookingsValidator,
+  viewBookingDetailsValidator,
   approveBookingValidator,
   rejectBookingValidator,
+  deleteImageValidator,
 } from '../validators/propertyManager.validators.js';
+import { uploadMultipleImages } from '../middlewares/upload.middleware.js';
 
 const router = Router();
 
@@ -50,6 +54,18 @@ router.get(
   managerController.getUserProperty
 );
 
+router.get(
+  '/bookings/all',
+  zodValidation(getAllBookingsValidator),
+  managerController.getAllBookings
+);
+
+router.get(
+  '/bookings/:id',
+  zodValidation(viewBookingDetailsValidator),
+  managerController.viewBookingDetails
+);
+
 router.patch(
   '/bookings/:id/approve',
   zodValidation(approveBookingValidator),
@@ -60,6 +76,21 @@ router.patch(
   '/bookings/:id/reject',
   zodValidation(rejectBookingValidator),
   managerController.rejectBooking
+);
+
+// Upload up to 5 images for a property (field name: 'images')
+router.post(
+  '/properties/:id/images',
+  uploadMultipleImages,
+  zodValidation(publishPropertyValidator),
+  managerController.uploadPropertyImages
+);
+
+// Delete a property image by id
+router.delete(
+  '/properties/:id/images/:imageId',
+  zodValidation(deleteImageValidator),
+  managerController.deletePropertyImage
 );
 
 export default router;

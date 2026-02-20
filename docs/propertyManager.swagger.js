@@ -243,6 +243,100 @@ export default {
       },
     },
 
+    '/api/v1/manager/properties/{id}/images': {
+      post: {
+        summary: 'Upload property image',
+        description:
+          'Upload a single image file for a property (field name: image).',
+        tags: ['Property Manager'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Property ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: {
+                type: 'object',
+                properties: {
+                  images: {
+                    type: 'array',
+                    items: { type: 'string', format: 'binary' },
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Image uploaded successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ApiResponse' },
+              },
+            },
+          },
+          400: {
+            description: 'Validation error or no file provided',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/manager/properties/{id}/images/{imageId}': {
+      delete: {
+        summary: 'Delete a property image',
+        description: 'Delete a previously uploaded image for a property.',
+        tags: ['Property Manager'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+          },
+          {
+            in: 'path',
+            name: 'imageId',
+            required: true,
+            schema: { type: 'string' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Image deleted successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ApiResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Image not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
     '/api/v1/manager/properties/mine': {
       get: {
         summary: "List manager's own properties",
@@ -295,6 +389,135 @@ export default {
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/PaginatedProperty' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/manager/bookings/all': {
+      get: {
+        summary: 'List all bookings for properties you manage',
+        description:
+          'Retrieve bookings associated with properties under your management with optional filtering and pagination.',
+        tags: ['Property Manager'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'page',
+            schema: { type: 'integer', example: 1 },
+            description: 'Page number (default: 1)',
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', example: 15 },
+            description: 'Items per page (default: 15)',
+          },
+          {
+            in: 'query',
+            name: 'from',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Filter bookings created from this date (ISO 8601)',
+          },
+          {
+            in: 'query',
+            name: 'to',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Filter bookings created until this date (ISO 8601)',
+          },
+          {
+            in: 'query',
+            name: 'order',
+            schema: { type: 'string', enum: ['asc', 'desc'], example: 'desc' },
+            description: 'Sort order by creation date',
+          },
+          {
+            in: 'query',
+            name: 'status',
+            schema: {
+              type: 'string',
+              enum: ['pending', 'approved', 'rejected', 'cancelled'],
+            },
+            description: 'Filter by booking status',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Bookings retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/PaginatedResponse' },
+                    {
+                      type: 'object',
+                      properties: {
+                        data: {
+                          type: 'array',
+                          items: { $ref: '#/components/schemas/Booking' },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/manager/bookings/{id}': {
+      get: {
+        summary: 'Get booking details',
+        description:
+          'Retrieve detailed information for a specific booking of a property you manage.',
+        tags: ['Property Manager'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Booking ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Booking details retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  $ref: '#/components/schemas/ManagerBookingDetailResponse',
+                },
+              },
+            },
+          },
+          404: {
+            description: 'Booking not found or not under your management',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
               },
             },
           },

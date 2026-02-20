@@ -1,5 +1,8 @@
 import { z } from 'zod';
-import { property_approval_status } from '../generated/prisma/index.js';
+import {
+  property_approval_status,
+  booking_status,
+} from '../generated/prisma/index.js';
 
 // reused simple id schema for routes with only an :id parameter
 const idParamSchema = z.object({
@@ -7,6 +10,15 @@ const idParamSchema = z.object({
   query: z.object({}).strict().optional(),
   params: z.object({
     id: z.uuid('Invalid ID format'),
+  }),
+});
+
+export const deleteImageValidator = z.object({
+  body: z.object({}).strict().optional(),
+  query: z.object({}).strict().optional(),
+  params: z.object({
+    id: z.uuid('Invalid ID format'),
+    imageId: z.uuid('Invalid image ID format'),
   }),
 });
 
@@ -121,3 +133,36 @@ export const getUserPropertyValidator = z.object({
     .optional(),
   params: z.object({}).strict().optional(),
 });
+/**
+ * Validator for listing all bookings with filters/pagination
+ */
+export const getAllBookingsValidator = z.object({
+  body: z.object({}).strict().optional(),
+  query: z
+    .object({
+      page: z
+        .string({
+          invalid_type_error: 'Page must be a string',
+        })
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      limit: z
+        .string({
+          invalid_type_error: 'Limit must be a string',
+        })
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      from: z.iso.datetime('Invalid date format').optional(),
+      to: z.iso.datetime('Invalid date format').optional(),
+      order: z.enum(['asc', 'desc']).optional(),
+      status: z.enum(Object.values(booking_status)).optional(),
+    })
+    .strict()
+    .optional(),
+  params: z.object({}).strict().optional(),
+});
+
+/**
+ * Validator for viewing a single booking by id
+ */
+export const viewBookingDetailsValidator = idParamSchema;
