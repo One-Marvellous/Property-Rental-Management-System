@@ -161,6 +161,27 @@ const swaggerOptions = {
           },
         },
 
+        Invoice: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            rental_id: { type: 'string' },
+            total_amount: { type: 'number' },
+            status: { type: 'string' },
+            stripe_checkout_session_id: { type: 'string' },
+            stripe_payment_intent_id: { type: 'string' },
+          },
+        },
+        PaymentSchedule: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            due_date: { type: 'string', format: 'date-time' },
+            amount: { type: 'number' },
+            status: { type: 'string' },
+          },
+        },
+
         /** ---------------- AUTH ---------------- */
         AuthData: {
           type: 'object',
@@ -360,6 +381,28 @@ const swaggerOptions = {
               },
             },
           ],
+        },
+
+        Rental: {
+          type: 'object',
+          properties: {
+            id: { type: 'string' },
+            user_id: { type: 'string' },
+            property_id: { type: 'string' },
+            status: { type: 'string' },
+            lease_start: { type: 'string', format: 'date-time' },
+            lease_end: { type: 'string', format: 'date-time' },
+            pricing_unit: { type: 'string' },
+            agreed_price: { type: 'number' },
+            payment_schedules: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/PaymentSchedule' },
+            },
+            invoices: {
+              type: 'array',
+              items: { $ref: '#/components/schemas/Invoice' },
+            },
+          },
         },
 
         /** ---------------- PAGINATION ---------------- */

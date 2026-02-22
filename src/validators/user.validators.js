@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { UserRole } from '../models/roles.js';
 import { booking_status } from '../generated/prisma/index.js';
+import { PaymentMode } from '../models/paymentMode.js';
 
 /**
  * Switch User Role Validator Schema
@@ -61,10 +62,10 @@ export const getUserBookingsValidator = z.object({
 });
 
 /**
- * Get Booking By ID Validator Schema
- * Validates path parameter for fetching a specific booking
+ * ID Parameter Validator Schema
+ * Validates single ID path parameter
  */
-export const getBookingByIdValidator = z.object({
+export const idParamValidator = z.object({
   body: z.object({}).strict().optional(),
   query: z.object({}).strict().optional(),
   params: z.object({
@@ -108,4 +109,33 @@ export const applyForManagerValidator = z.object({
   }),
   query: z.object({}).strict().optional(),
   params: z.object({}).strict().optional(),
+});
+
+/**
+ * Create invoice Schema
+ * Validates request for invoice creation
+ */
+export const createInvoiceValidator = z.object({
+  body: z
+    .object({
+      paymentMode: z.enum(Object.values(PaymentMode)),
+    })
+    .strict()
+    .optional(),
+  query: z.object({}).strict().optional(),
+  params: z.object({
+    id: z.uuid('Invalid ID format'),
+  }),
+});
+
+/**
+ * Session ID Parameter Validator Schema
+ * Validates single ID path parameter
+ */
+export const sessionIdParamValidator = z.object({
+  body: z.object({}).strict().optional(),
+  query: z.object({}).strict().optional(),
+  params: z.object({
+    session_id: z.uuid('Invalid ID format'),
+  }),
 });

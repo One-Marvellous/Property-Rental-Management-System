@@ -10,7 +10,9 @@ import authRoutes from './routes/auth.routes.js';
 import propertyManagerRoutes from './routes/propertyManager.routes.js';
 import userRoutes from './routes/user.routes.js';
 import propertyRoutes from './routes/property.routes.js';
+import transactionRoutes from './routes/transaction.route.js';
 import globalErrorHandler from './middlewares/error.middleware.js';
+import cors from 'cors';
 
 connectDB();
 
@@ -21,22 +23,13 @@ const PORT = ENV.PORT;
 let server;
 
 // CORS middleware for Swagger UI and API requests
-app.use((req, res, next) => {
-  res.header('Access-Control-Allow-Origin', '*');
-  res.header(
-    'Access-Control-Allow-Methods',
-    'GET, POST, PUT, PATCH, DELETE, OPTIONS'
-  );
-  res.header(
-    'Access-Control-Allow-Headers',
-    'Origin, X-Requested-With, Content-Type, Accept, Authorization'
-  );
-
-  if (req.method === 'OPTIONS') {
-    return res.sendStatus(200);
-  }
-  next();
-});
+app.use(
+  cors({
+    origin: [`http://localhost:${PORT}`], // Allow both frontend and Swagger UI origins
+    methods: ['GET', 'POST', 'PATCH', 'DELETE'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
 
 app.use(express.json());
 
@@ -51,6 +44,7 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/manager', propertyManagerRoutes);
 app.use('/api/v1/user', userRoutes);
+app.use('/webhook', transactionRoutes);
 app.use('/api/v1/properties', propertyRoutes);
 
 app.get('/api/v1/health', (req, res) => {

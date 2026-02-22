@@ -1,3 +1,5 @@
+import { PaymentMode } from '../src/models/paymentMode.js';
+
 export default {
   paths: {
     '/api/v1/user/switch-role': {
@@ -412,6 +414,150 @@ export default {
               },
             },
           },
+        },
+      },
+    },
+
+    '/api/v1/user/rentals/{id}': {
+      get: {
+        summary: 'Get rental details by ID',
+        tags: ['User'],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Rental ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Rental details',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Rental' },
+              },
+            },
+          },
+          404: {
+            description: 'Rental not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/user/rentals/{id}/create-invoice': {
+      post: {
+        summary: 'Create invoice for rental',
+        tags: ['User'],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Rental ID',
+          },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                properties: {
+                  paymentMode: {
+                    type: 'string',
+                    enum: Object.values(PaymentMode),
+                  },
+                },
+              },
+            },
+          },
+        },
+        responses: {
+          201: {
+            description: 'Invoice created',
+            content: {
+              'application/json': {
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/ApiResponse' },
+                    {
+                      type: 'object',
+                      properties: {
+                        data: { $ref: '#/components/schemas/Invoice' },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          400: {
+            description: 'Invoice already exists or rental terminated',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          404: {
+            description: 'Rental not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/user/rentals/{id}/checkout': {
+      post: {
+        summary: 'Initiate Stripe checkout session for rental invoice',
+        tags: ['User'],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Rental ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Stripe checkout session created',
+            content: {
+              'application/json': {
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/ApiResponse' },
+                    {
+                      type: 'object',
+                      properties: {
+                        data: {
+                          type: 'object',
+                          properties: {
+                            url: { type: 'string' },
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+          404: { description: 'Invoice or rental not found' },
         },
       },
     },

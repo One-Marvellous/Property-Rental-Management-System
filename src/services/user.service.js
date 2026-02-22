@@ -10,7 +10,13 @@ import {
   property_approval_status,
   manager_application_status,
   property_availability_status,
+  booking_status,
+  schedule_status,
+  rental_status,
+  invoice_status,
 } from '../generated/prisma/index.js';
+import { PaymentMode } from '../models/paymentMode.js';
+import stripe from '../config/stripe.js';
 
 /**
  * UserService handles business logic available to regular users
@@ -208,6 +214,7 @@ class UserService {
         user_id: userId,
       },
       include: {
+        rentals: true,
         properties: {
           select: {
             address: true,
@@ -239,6 +246,7 @@ class UserService {
         created_at: booking.created_at,
       },
       property: booking.properties,
+      rental: booking.rentals,
     };
   }
 
@@ -274,6 +282,7 @@ class UserService {
     await prisma.bookings.update({
       where: { id: booking.id },
       data: {
+        status: booking_status.cancelled,
         cancellation_reason: reason,
         cancelled_at: new Date(),
       },
@@ -391,6 +400,231 @@ class UserService {
       throw new ApiError(404, 'Property manager application not found');
     }
     return { status: application.status };
+  }
+
+  /**
+   * Retrieve rental of the user's booking
+   * @param {object} data
+   * @param {string} data.userId - ID of the user who owns the booking
+   * @param {string} data.rentalId - ID of the rental
+   * @returns {Promise<object>}
+   * @throws {ApiError} If rental not found
+   */
+  async getRental(data) {
+    const { userId, rentalId } = data;
+
+    const rental = await prisma.rentals.findUnique({
+      where: { id: rentalId, user_id: userId },
+      include: {
+        invoices: true,
+        payment_schedules: {
+          where: {
+            rental_id: rentalId,
+          },
+          orderBy: { due_date: 'asc' },
+        },
+      },
+    });
+    if (!rental) {
+      throw new ApiError(404, 'Rental not found');
+    }
+
+    return {
+      id: rental.id,
+      user_id: rental.user_id,
+      status: rental.status,
+      created_at: rental.created_at,
+      booking_id: rental.booking_id,
+      property_id: rental.property_id,
+      lease_start: rental.lease_start,
+      lease_end: rental.lease_end,
+      pricing_unit: rental.pricing_unit,
+      agreed_price: rental.agreed_price,
+      payment_schedules: rental.payment_schedules,
+      invoices: rental.invoices,
+    };
+  }
+
+  /**
+   * Creates Installment invoice
+   * @param {string} rentalId - ID of the rental
+   * @returns {Promise<object>}
+   */
+  async createInstallmentInvoice(rentalId) {
+    const schedule = await prisma.payment_schedules.findFirst({
+      where: {
+        rental_id: rentalId,
+        status: schedule_status.pending,
+      },
+      orderBy: { due_date: 'asc' },
+    });
+
+    if (!schedule) throw new ApiError(404, 'No unpaid schedules');
+
+    return await prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoices.create({
+        data: {
+          rental_id: rentalId,
+          total_amount: schedule.amount,
+        },
+      });
+
+      await tx.invoice_schedules.create({
+        data: {
+          invoice_id: invoice.id,
+          schedule_id: schedule.id,
+          allocated_amount: schedule.amount,
+        },
+      });
+
+      return invoice;
+    });
+  }
+
+  /**
+   * Creates Installment invoice
+   * @param {string} rentalId - ID of the rental
+   * @returns {Promise<object>}
+   */
+  async createFullSettlementInvoice(rentalId) {
+    const schedules = await prisma.payment_schedules.findMany({
+      where: {
+        rental_id: rentalId,
+        status: schedule_status.pending,
+      },
+    });
+
+    if (!schedules.length) throw new Error('Nothing to settle');
+
+    const total = schedules.reduce((sum, s) => sum + Number(s.amount), 0);
+
+    return await prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoices.create({
+        data: {
+          rental_id: rentalId,
+          total_amount: total,
+        },
+      });
+
+      for (const schedule of schedules) {
+        await tx.invoice_schedules.create({
+          data: {
+            invoice_id: invoice.id,
+            schedule_id: schedule.id,
+            allocated_amount: schedule.amount,
+          },
+        });
+      }
+
+      return invoice;
+    });
+  }
+
+  /**
+   * Creates invoice
+   * @param {object} data
+   * @param {string} data.rentalId - ID of the rental
+   * @param {string} data.userId - ID of the user
+   * @param {string} data.paymentMode - Mode of payment (full or installment)
+   * @returns {Promise<string>} Application status
+   * @throws {ApiError} If application not found
+   */
+  async createInvoice(data) {
+    const { rentalId, userId, paymentMode } = data;
+
+    // check for existing invoice for the rental
+
+    const existingInvoice = await prisma.invoices.findFirst({
+      where: { rental_id: rentalId, status: invoice_status.pending },
+    });
+
+    if (existingInvoice) {
+      throw new ApiError(400, 'Invoice already exists for this rental');
+    }
+
+    const rental = await prisma.rentals.findFirst({
+      where: { id: rentalId, user_id: userId },
+    });
+
+    if (!rental) {
+      throw new ApiError(404, 'Rental not found');
+    }
+
+    if (rental.status == rental_status.terminated) {
+      throw new ApiError(400, 'Rental terminated');
+    }
+
+    if (paymentMode === PaymentMode.FULL) {
+      this.createFullSettlementInvoice(rentalId);
+    } else {
+      this.createInstallmentInvoice(rentalId);
+    }
+  }
+
+  /**
+   * Initiates Stripe Checkout Session for invoice payment
+   * @param {object} data
+   * @param {string} data.rentalId - ID of the rental
+   * @param {string} data.userId - ID of the user
+   * @returns {Promise<object>} Stripe session object
+   */
+  async createCheckoutSession(data) {
+    const { invoiceId, userId } = data;
+    const invoice = await prisma.invoices.findFirst({
+      where: {
+        id: invoiceId,
+        status: invoice_status.pending,
+        rentals: {
+          user_id: userId,
+        },
+      },
+    });
+
+    if (!invoice) throw new ApiError(404, 'Pending invoice not found');
+
+    // Stripe session creation for payment
+    const session = await stripe.checkout.sessions.create({
+      mode: 'payment',
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price_data: {
+            currency: 'ngn',
+            product_data: {
+              name: `Rental Invoice ${invoice.id}`,
+            },
+            unit_amount: invoice.total_amount * 100,
+          },
+          quantity: 1,
+        },
+      ],
+      success_url: `${ENV.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `${ENV.FRONTEND_URL}/payment-cancelled`,
+      metadata: {
+        invoice_id: invoice.id,
+        rental_id: invoice.rental_id,
+        user_id: invoice.user_id,
+      },
+    });
+
+    // Store session ID for later reference
+    await prisma.invoices.update({
+      where: { id: invoice.id },
+      data: {
+        stripe_checkout_session_id: session.id,
+        stripe_payment_intent_id: session.payment_intent,
+      },
+    });
+    return session;
+  }
+
+  /**
+   * Retrieves a Stripe Checkout Session by session ID
+   * @param {string} sessionId - Stripe session ID
+   * @returns {Promise<object>} Stripe session object
+   */
+  async getCheckoutSession(sessionId) {
+    return await stripe.checkout.sessions.retrieve(sessionId);
   }
 }
 
