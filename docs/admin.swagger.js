@@ -289,7 +289,7 @@ export default {
             name: 'status',
             schema: {
               type: 'string',
-              enum: property_approval_status,
+              enum: Object.values(property_approval_status),
             },
             description: 'Filter by application status',
           },

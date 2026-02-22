@@ -604,7 +604,7 @@ class PropertyManagerService {
         data: schedules,
       });
 
-      // 5️⃣ Update booking status
+      // Update booking status
       await tx.bookings.update({
         where: { id: booking.id },
         data: {

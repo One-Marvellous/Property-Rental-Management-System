@@ -13,15 +13,17 @@ CREATE TYPE property_availability_status AS ENUM ('available','occupied','mainte
 
 CREATE TYPE booking_status AS ENUM ('pending','approved','rejected','cancelled');
 
-CREATE TYPE rental_status AS ENUM ('active','completed','terminated');
-
 CREATE TYPE payment_status AS ENUM ('pending','successful','failed','refunded');
 
 CREATE TYPE payment_category AS ENUM ('deposit','full_payment','part_payment','monthly');
 
 CREATE TYPE property_approval_status AS ENUM ('draft','pending','approved','rejected','suspended');
 
-CREATE TYPE schedule_status AS ENUM ('pending', 'paid', 'overdue');
+CREATE TYPE rental_status AS ENUM ('awaiting_payment','active','completed','terminated');
+
+CREATE TYPE schedule_status AS ENUM ('pending','paid','overdue');
+
+CREATE TYPE invoice_status AS ENUM ('pending','paid','void','overdue');
 
 
 -- ================= USERS & ROLES =================
@@ -251,7 +253,7 @@ ALTER TABLE bookings
 ADD CONSTRAINT no_overlapping_bookings
 EXCLUDE USING gist (
   property_id WITH =,
-  daterange(start_date, end_date, '[]') WITH &&
+  daterange(start_date, end_date, '[)') WITH &&
 )
 WHERE (status IN ('pending','approved'));
 
@@ -284,14 +286,13 @@ CREATE TABLE rentals (
   pricing_unit pricing_unit NOT NULL,
   agreed_price NUMERIC(12,2) NOT NULL CHECK (agreed_price >= 0),
 
-  status rental_status NOT NULL DEFAULT 'active',
+  status rental_status NOT NULL DEFAULT 'awaiting_payment',
 
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
 
   CHECK (lease_end >= lease_start)
 );
 
--- Added indexes
 CREATE INDEX idx_rentals_user_id ON rentals(user_id);
 CREATE INDEX idx_rentals_property_id ON rentals(property_id);
 CREATE INDEX idx_rentals_status ON rentals(status);
@@ -302,16 +303,14 @@ CREATE INDEX idx_rentals_status ON rentals(status);
 CREATE TABLE payments (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
 
-  rental_id UUID NOT NULL REFERENCES rentals(id) ON DELETE RESTRICT,
+  invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
 
   amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
 
-  category payment_category NOT NULL,
-  payment_method VARCHAR,
-
   payment_status payment_status NOT NULL,
 
-  transaction_reference VARCHAR UNIQUE,
+  stripe_charge_id VARCHAR UNIQUE,
+
   paid_at TIMESTAMP,
 
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
@@ -323,13 +322,11 @@ CREATE TABLE payments (
   )
 );
 
-CREATE INDEX idx_payments_rental_id ON payments(rental_id);
-
--- Added indexes
-CREATE INDEX idx_payments_rental_created
-ON payments(rental_id, created_at DESC);
-
+CREATE INDEX idx_payments_invoice_id ON payments(invoice_id);
 CREATE INDEX idx_payments_status ON payments(payment_status);
+
+
+-- ================= PAYMENT SCHEDULES (Blueprint of Obligation) =================
 
 CREATE TABLE payment_schedules (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -339,7 +336,7 @@ CREATE TABLE payment_schedules (
   due_date DATE NOT NULL,
   amount NUMERIC(12,2) NOT NULL CHECK (amount > 0),
 
-  status schedule_status NOT NULL DEFAULT 'pending', 
+  status schedule_status NOT NULL DEFAULT 'pending',
 
   created_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
@@ -348,3 +345,43 @@ CREATE INDEX idx_schedule_rental_id ON payment_schedules(rental_id);
 CREATE INDEX idx_schedule_status ON payment_schedules(status);
 CREATE INDEX idx_schedule_due_date ON payment_schedules(due_date);
 
+
+-- ================= INVOICES (Billing Event) =================
+CREATE TABLE invoices (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  rental_id UUID NOT NULL REFERENCES rentals(id) ON DELETE CASCADE,
+
+  total_amount NUMERIC(12,2) NOT NULL CHECK (total_amount > 0),
+
+  status invoice_status NOT NULL DEFAULT 'pending',
+
+  stripe_checkout_session_id VARCHAR UNIQUE,
+  stripe_payment_intent_id VARCHAR UNIQUE,
+
+  due_date DATE,
+  paid_at TIMESTAMP,
+
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX idx_invoices_rental_id ON invoices(rental_id);
+CREATE INDEX idx_invoices_status ON invoices(status);
+
+
+-- ================= INVOICE ↔ SCHEDULE JUNCTION TABLE =================
+CREATE TABLE invoice_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  schedule_id UUID NOT NULL REFERENCES payment_schedules(id) ON DELETE CASCADE,
+
+  allocated_amount NUMERIC(12,2) NOT NULL CHECK (allocated_amount > 0),
+
+  created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+
+  UNIQUE (invoice_id, schedule_id)
+);
+
+CREATE INDEX idx_invoice_schedules_invoice_id ON invoice_schedules(invoice_id);
+CREATE INDEX idx_invoice_schedules_schedule_id ON invoice_schedules(schedule_id);

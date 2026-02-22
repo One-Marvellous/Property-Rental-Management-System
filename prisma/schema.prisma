@@ -40,35 +40,18 @@ model categories {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model payment_schedules {
-  id         String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  rental_id  String          @db.Uuid
-  due_date   DateTime        @db.Date
-  amount     Decimal         @db.Decimal(12, 2)
-  status     schedule_status @default(pending)
-  created_at DateTime        @default(now()) @db.Timestamp(6)
-  rentals    rentals         @relation(fields: [rental_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  id                String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rental_id         String              @db.Uuid
+  due_date          DateTime            @db.Date
+  amount            Decimal             @db.Decimal(12, 2)
+  status            schedule_status     @default(pending)
+  created_at        DateTime            @default(now()) @db.Timestamp(6)
+  invoice_schedules invoice_schedules[]
+  rentals           rentals             @relation(fields: [rental_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@index([due_date], map: "idx_schedule_due_date")
   @@index([rental_id], map: "idx_schedule_rental_id")
   @@index([status], map: "idx_schedule_status")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model payments {
-  id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  rental_id             String           @db.Uuid
-  amount                Decimal          @db.Decimal(12, 2)
-  category              payment_category
-  payment_method        String?          @db.VarChar
-  payment_status        payment_status
-  transaction_reference String?          @unique @db.VarChar
-  paid_at               DateTime?        @db.Timestamp(6)
-  created_at            DateTime         @default(now()) @db.Timestamp(6)
-  rentals               rentals          @relation(fields: [rental_id], references: [id], onUpdate: NoAction)
-
-  @@index([rental_id, created_at(sort: Desc)], map: "idx_payments_rental_created")
-  @@index([rental_id], map: "idx_payments_rental_id")
-  @@index([payment_status], map: "idx_payments_status")
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -118,7 +101,7 @@ model property_images {
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model property_manager_applications {
   id                                                      String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                                                 String                     @unique(map: "idx_unique_pending_application") @db.Uuid
+  user_id                                                 String                     @unique(map: "idx_unique_pending_application", where: raw("(status = 'pending'::manager_application_status)")) @db.Uuid
   reason                                                  String
   status                                                  manager_application_status @default(pending)
   reviewed_by                                             String?                    @db.Uuid
@@ -145,10 +128,10 @@ model rentals {
   lease_end         DateTime            @db.Date
   pricing_unit      pricing_unit
   agreed_price      Decimal             @db.Decimal(12, 2)
-  status            rental_status       @default(active)
+  status            rental_status       @default(awaiting_payment)
   created_at        DateTime            @default(now()) @db.Timestamp(6)
+  invoices          invoices[]
   payment_schedules payment_schedules[]
-  payments          payments[]
   bookings          bookings            @relation(fields: [booking_id], references: [id], onUpdate: NoAction)
   properties        properties          @relation(fields: [property_id], references: [id], onUpdate: NoAction)
   users             users               @relation(fields: [user_id], references: [id], onUpdate: NoAction)
@@ -208,6 +191,39 @@ model users {
   @@index([is_suspended], map: "idx_users_is_suspended")
 }
 
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model invoice_schedules {
+  id                String            @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  invoice_id        String            @db.Uuid
+  schedule_id       String            @db.Uuid
+  allocated_amount  Decimal           @db.Decimal(12, 2)
+  created_at        DateTime          @default(now()) @db.Timestamp(6)
+  invoices          invoices          @relation(fields: [invoice_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  payment_schedules payment_schedules @relation(fields: [schedule_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@unique([invoice_id, schedule_id])
+  @@index([invoice_id], map: "idx_invoice_schedules_invoice_id")
+  @@index([schedule_id], map: "idx_invoice_schedules_schedule_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model invoices {
+  id                         String              @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rental_id                  String              @db.Uuid
+  total_amount               Decimal             @db.Decimal(12, 2)
+  status                     invoice_status      @default(pending)
+  stripe_checkout_session_id String?             @unique @db.VarChar
+  stripe_payment_intent_id   String?             @unique @db.VarChar
+  due_date                   DateTime?           @db.Date
+  paid_at                    DateTime?           @db.Timestamp(6)
+  created_at                 DateTime            @default(now()) @db.Timestamp(6)
+  invoice_schedules          invoice_schedules[]
+  rentals                    rentals             @relation(fields: [rental_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@index([rental_id], map: "idx_invoices_rental_id")
+  @@index([status], map: "idx_invoices_status")
+}
+
 enum booking_status {
   pending
   approved
@@ -258,6 +274,7 @@ enum property_availability_status {
 }
 
 enum rental_status {
+  awaiting_payment
   active
   completed
   terminated
@@ -266,5 +283,12 @@ enum rental_status {
 enum schedule_status {
   pending
   paid
+  overdue
+}
+
+enum invoice_status {
+  pending
+  paid
+  void
   overdue
 }

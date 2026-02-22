@@ -1,4 +1,8 @@
-import { property_approval_status } from '../src/generated/prisma/index.js';
+import {
+  booking_status,
+  property_approval_status,
+} from '../src/generated/prisma/index.js';
+import { OrderStatus } from '../src/models/order.js';
 
 export default {
   paths: {
@@ -370,8 +374,8 @@ export default {
             name: 'order',
             schema: {
               type: 'string',
-              enum: ['asc', 'desc'],
-              default: 'desc',
+              enum: [Object.values(OrderStatus)],
+              default: OrderStatus.DESC,
             },
           },
           {
@@ -439,7 +443,11 @@ export default {
           {
             in: 'query',
             name: 'order',
-            schema: { type: 'string', enum: ['asc', 'desc'], example: 'desc' },
+            schema: {
+              type: 'string',
+              enum: [Object.values(OrderStatus)],
+              example: OrderStatus.DESC,
+            },
             description: 'Sort order by creation date',
           },
           {
@@ -447,7 +455,7 @@ export default {
             name: 'status',
             schema: {
               type: 'string',
-              enum: ['pending', 'approved', 'rejected', 'cancelled'],
+              enum: Object.values(booking_status),
             },
             description: 'Filter by booking status',
           },

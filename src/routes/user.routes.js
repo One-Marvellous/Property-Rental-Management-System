@@ -10,9 +10,11 @@ import {
   switchUserRoleValidator,
   createBookingValidator,
   getUserBookingsValidator,
-  getBookingByIdValidator,
+  idParamValidator,
   cancelBookingValidator,
   applyForManagerValidator,
+  createInvoiceValidator,
+  sessionIdParamValidator,
 } from '../validators/user.validators.js';
 
 const router = Router();
@@ -47,7 +49,7 @@ router.get(
 
 router.get(
   '/bookings/:id',
-  zodValidation(getBookingByIdValidator),
+  zodValidation(idParamValidator),
   userController.getBookingById
 );
 
@@ -68,5 +70,27 @@ router.get(
   '/manager-application/status',
   userController.getManagerApplicationStatus
 );
+
+router.get(
+  '/rentals:id',
+  zodValidation(idParamValidator),
+  userController.getRental
+);
+
+router.post(
+  '/rentals:id/create-invoice',
+  zodValidation(createInvoiceValidator),
+  userController.createInvoice
+);
+
+router.post('/rentals/:id/checkout', userController.createCheckoutSession);
+
+router.get(
+  '/payment-success',
+  zodValidation(sessionIdParamValidator),
+  userController.paymentSuccess
+);
+
+router.get('/payment-cancelled', userController.paymentCancelled);
 
 export default router;

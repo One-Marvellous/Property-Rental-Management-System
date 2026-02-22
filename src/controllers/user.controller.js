@@ -176,6 +176,93 @@ class UserController {
       next(error);
     }
   }
+
+  async getRental(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const rentalId = req.params.id;
+      const result = await userService.getRental({
+        userId,
+        rentalId,
+      });
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Rental fetched successfully', result));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async createInvoice(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const rentalId = req.params.id;
+      const { paymentMode } = req.body;
+
+      const result = await userService.createInvoice({
+        rentalId,
+        userId,
+        paymentMode,
+      });
+
+      res
+        .status(201)
+        .json(new ApiResponse(true, 'Invoice created successfully', result));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Initiates Stripe Checkout Session for invoice payment
+   */
+  async createCheckoutSession(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const invoiceId = req.params.id;
+
+      const session = await userService.createCheckoutSession({
+        invoiceId,
+        userId,
+      });
+
+      res.status(200).json(
+        new ApiResponse(true, 'Stripe checkout session created', {
+          url: session.url,
+        })
+      );
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Handle payment success callback, retrieve Stripe session
+   */
+  async paymentSuccess(req, res, next) {
+    try {
+      const { session_id } = req.query;
+
+      const session = await userService.getCheckoutSession(session_id);
+
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Payment successful', { session }));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
+   * Serve payment cancelled page (static or simple response)
+   */
+  async paymentCancelled(req, res, next) {
+    try {
+      res.status(200).send('Payment was cancelled. You can try again.');
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new UserController();
