@@ -141,6 +141,7 @@ ON property_manager_applications(user_id, status);
 
 CREATE TABLE categories (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  display_order INT DEFAULT 0,
   name VARCHAR NOT NULL UNIQUE,
   description TEXT
 );
@@ -385,3 +386,18 @@ CREATE TABLE invoice_schedules (
 
 CREATE INDEX idx_invoice_schedules_invoice_id ON invoice_schedules(invoice_id);
 CREATE INDEX idx_invoice_schedules_schedule_id ON invoice_schedules(schedule_id);
+
+-- ================= PROPERTY EARNINGS (REPORTING)=================
+CREATE TABLE property_earnings (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  payment_id UUID NOT NULL REFERENCES payments(id) ON DELETE CASCADE,
+  property_id UUID NOT NULL REFERENCES properties(id) ON DELETE CASCADE,
+  rental_id UUID NOT NULL REFERENCES rentals(id) ON DELETE CASCADE,
+
+  gross_amount NUMERIC(12,2) NOT NULL,
+  platform_fee NUMERIC(12,2) NOT NULL,
+  manager_earnings NUMERIC(12,2) NOT NULL,
+
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);

@@ -36,11 +36,8 @@ hotels, and event spaces.
 
 - Structured payment tracking per rental
 - Supports:
-  - Deposits
-  - Partial payments
-  - Recurring rent payments
-  - Late fees _(future-ready)_
-  - Refunds
+  - Full payments
+  - Installment payments
 - Payment history for tenants, managers, and admins
 
 ### 🧩 Scalable Architecture
@@ -57,7 +54,7 @@ hotels, and event spaces.
 - **Runtime**: Node.js (ES Modules)
 - **Framework**: Express.js
 - **Database**: PostgreSQL
-- **ORM**: Prisma (configured)
+- **ORM**: Prisma
 - **Code Formatting**: Prettier
 - **Environment Management**: dotenv
 
@@ -71,8 +68,8 @@ graph LR
   B --> C[Manager Approval]
   C --> D[Rental Created]
   D --> E[Payment Schedule Created]
-  E --> F[Payment Tracked]
-  F --> G[Rental Completed/Terminated]
+  E --> F[Invoice Created]
+  F --> G[Payment]
 ```
 
 ---
@@ -207,8 +204,6 @@ graph LR
    \i scripts/prm.sql
    ```
 
-   > **Alternative**: Let Prisma handle schema initialization. After setting `DATABASE_URL` in `.env`, Prisma will introspect and pull the schema (steps 6-7 below).
-
 5. **Configure environment variables**
    - Copy the sample environment file:
      ```bash
@@ -233,6 +228,8 @@ graph LR
      NODE_ENV=development
      ...
      ```
+
+   > **Note**: see `Integration Setup` for setup for Cloudinary and Stripe
 
 6. **Generate Prisma Client**
 
@@ -260,6 +257,55 @@ graph LR
 
    The server will start on `http://localhost:3000` (or the port specified in `.env`)
 
+## Integration Setup
+
+### Stripe Payment Integration
+
+This project uses Stripe for secure payment processing. To enable Stripe:
+
+1. **Create a Stripe account** at https://dashboard.stripe.com/register
+2. **Get your API keys** from the Stripe dashboard (Developers > API keys)
+3. Change the following variables in your `.env` file:
+
+   ```env
+   STRIPE_SECRET_KEY=sk_test_...
+   FRONTEND_URL=http://localhost:3000
+   ENDPOINT_SECRET=your_stripe_webhook_secret
+   ```
+
+4. The backend uses `STRIPE_SECRET_KEY` for server-side API calls and webhook verification.
+5. Webhook events are handled at `/webhook` (see routes and docs).
+6. To test payments, use Stripe's test card numbers and the test mode.
+
+**Stripe config:**
+
+- See [src/config/stripe.js](src/config/stripe.js) for initialization
+- Payment flows are managed in the user service and controller
+
+### Cloudinary Image Integration
+
+Cloudinary is used for image uploads and management. To enable Cloudinary:
+
+1. **Create a Cloudinary account** at https://cloudinary.com/
+2. **Get your cloud name, API key, and API secret** from the Cloudinary dashboard
+3. Add the following to your `.env` file:
+
+   ```env
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+
+4. The backend configures Cloudinary in production mode (see [src/utils/imageUploader](src/utils/imageUploader.js))
+5. Image uploads, deletions, and transformations are handled via Cloudinary APIs
+
+**Cloudinary config:**
+
+- See [src/utils/imageUploader](src/utils/imageUploader.js) for setup and usage
+- Ensure your environment variables are set before deploying
+
+---
+
 ## API Documentation
 
 The API documentation is available through **Swagger UI** which provides interactive API exploration and testing.
@@ -286,7 +332,7 @@ The Swagger UI interface allows you to:
 
 - **Authentication**: `/api/v1/auth` - Register, login, and token refresh
 - **Admin**: `/api/v1/admin` - User management, category management, approvals
-- **Property Manager**: `/api/v1/property-manager` - Property and booking management
+- **Property Manager**: `/api/v1/manager` - Property and booking management
 - **User**: `/api/v1/user` - User profile and rental information
 - **Property**: `/api/v1/properties` - Browse properties related information
 - **Health**: `/api/v1/health` - Server health check
@@ -295,17 +341,21 @@ The Swagger UI interface allows you to:
 
 The system uses the following main entities:
 
-- **users**: Core user accounts with authentication
-- **roles**: Role definitions (tenant, property_manager, admin)
-- **user_roles**: Role assignments with audit trail
-- **property_manager_applications**: Applications for becoming a property manager
-- **properties**: Property listings with pricing and status
+- **users**: Core user accounts responsible for authentication and platform access.
+- **roles**: Role definitions (user, manager, admin).
+- **user_roles**: Junction table managing many-to-many relationships between users and roles.
+- **property_manager_applications**: Handles applications submitted by users requesting property manager privileges.
+- **categories**: Defines classification groups for properties (e.g., Apartment, Event Hall, Short-let, Office Space).
+- **properties**: Represents property listings created by approved property managers.
 - **property_images**: Images associated with properties
-- **bookings**: Property booking requests
-- **rentals**: Active rental agreements
-- **payments**: Payment transactions and tracking
+- **bookings**: Represents booking requests made by users for a property
+- **rentals**: Represents confirmed rental agreements derived from approved bookings.
+- **payment_schedules**: Defines structured payment obligations for a rental.
+- **invoices**: Represents billing events generated for a rental.
+- **payments**: Represents actual financial transactions.
+- **property_earnings**: Represents property earnings ledger table.
 
-![System Flow](<docs/ER diagram.svg>)
+![System Flow](<assets/ER diagram.svg>)
 
 ## Development Workflow
 
@@ -325,7 +375,7 @@ npm run format:check
 
 ### Code Quality
 
-Before committing your code, check for errors withing code:
+Before committing your code, check for errors within your code:
 
 ```bash
 npm run lint
@@ -349,12 +399,12 @@ npm run lint
 │   └── schema.prisma    # Prisma ORM schema
 ├── scripts/
 │   └── prm.sql          # PostgreSQL database schema
-├── docs/                # Documentation
+├── docs/                # Contains Swagger Documentation for API
 ├── .env.sample          # Environment variables template
 ├── .env                 # Environment variables
 ├── .gitignore           # Git ignore rules
-├── .prettierrc           # Prettier configuration
-├── .prettierignore       # Prettier ignore rules
+├── .prettierrc          # Prettier configuration
+├── .prettierignore      # Prettier ignore rules
 ├── prisma.config.ts     # Prisma configuration
 ├── package.json         # Project dependencies and scripts
 ├── package-lock.json    # Dependency lock file
@@ -365,8 +415,8 @@ npm run lint
 
 1. **Always install dependencies** with `npm i` before starting development
 2. **Set up your environment variables** by creating a `.env` file from `.env.sample`
-3. **Format your code** using `npm run format` and check for errors withing code using `npm run lint` before pushing changes
-4. **Never commit** the `.env` file (it's in `.gitignore`)
+3. **Format your code** using `npm run format` and check for errors within your code using `npm run lint` before pushing changes
+4. **Never commit** the `.env`, `generated` or `node_modules` files
 5. **Use descriptive commit messages** and keep commits atomic
 
 ## Git Workflow
@@ -417,10 +467,16 @@ ISC
 
 ## Support
 
-For issues, questions, or contributions, please open an issue or contact the development team or TS Academy
+For issues, questions, or contributions, please open an issue or contact the development team or [TS Academy](https://tsacademyonline.com)
 
-- TS Academy: https://tsacademyonline.com
 - Marvellous Fawole — https://github.com/One-Marvellous
-- dax-side — https://github.com/dax-side
-- JOHNNY-OBA — https://github.com/JOHNNY-OBA
+- Damilola Adegbite — https://github.com/dax-side
+- John Oluwatobi — https://github.com/JOHNNY-OBA
 - Sunday Alabi — https://github.com/iamalabisunday
+- Eliot — https://github.com/kingx7-cyber
+- Olofintila Ayomide — https://github.com/olofus0204
+- Gideon Omeje — https://github.com/gidzystar57
+- Ibrahim Sulaimon — https://github.com/Sulai007
+- Aghorunse Boluwatife — https://github.com/Teefelove
+- Olofintila Ayomide — https://github.com/olofus0204
+- Emmanuel Testimony — https://github.com/Angel27lab
