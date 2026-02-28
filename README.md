@@ -328,6 +328,22 @@ The Swagger UI interface allows you to:
 - Review authentication requirements for protected endpoints
 - Understand pagination and filtering options
 
+# Importing API Documentation to Postman
+
+You can easily migrate and test the API endpoints in Postman by importing the OpenAPI/Swagger documentation:
+
+1. **Start the server**: Make sure your server is running locally `npm run dev` (usually on port 3000).
+2. **Open Postman** and click on **Import**.
+3. Select the **Link** tab and enter:
+
+   ```
+   http://localhost:3000/api/doc-json
+   ```
+
+4. Click **Continue** and follow the prompts to import the API collection.
+
+> **Note:** The server **must be running** for Postman to access the documentation at this URL.
+
 ### API Endpoints Overview
 
 - **Authentication**: `/api/v1/auth` - Register, login, and token refresh
@@ -335,6 +351,7 @@ The Swagger UI interface allows you to:
 - **Property Manager**: `/api/v1/manager` - Property and booking management
 - **User**: `/api/v1/user` - User profile and rental information
 - **Property**: `/api/v1/properties` - Browse properties related information
+- **Category**: `/api/v1/categories` - Browse, edit create delete category related information
 - **Health**: `/api/v1/health` - Server health check
 
 ## Database Schema

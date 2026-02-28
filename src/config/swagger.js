@@ -11,6 +11,7 @@ import healthDoc from '../../docs/health.swagger.js';
 import propertyDoc from '../../docs/property.swagger.js';
 import userDoc from '../../docs/user.swagger.js';
 import managerDoc from '../../docs/propertyManager.swagger.js';
+import categoryDoc from '../../docs/category.swagger.js';
 
 const swaggerOptions = {
   definition: {
@@ -18,7 +19,7 @@ const swaggerOptions = {
     info: {
       title: 'Property Rental Management System API',
       description:
-        'Scalable backend for managing property rentals with role-based access, authentication, and booking workflows.',
+        'Scalable backend for managing property rentals with role-based access, authentication, booking and payment workflows.',
       version: '1.0.0',
       contact: {
         name: 'TS Academy Group 9',
@@ -500,9 +501,9 @@ const swaggerOptions = {
       { name: 'User', description: 'User operations' },
       { name: 'Property', description: 'Property endpoints' },
       { name: 'Health', description: 'Health check' },
+      { name: 'Category', description: 'Category endpoints' },
     ],
   },
-  // paths will be merged from dedicated docs modules below
 };
 
 // Merge paths from individual doc modules into the final OpenAPI spec
@@ -513,6 +514,7 @@ const mergedPaths = {
   ...(propertyDoc && propertyDoc.paths ? propertyDoc.paths : {}),
   ...(userDoc && userDoc.paths ? userDoc.paths : {}),
   ...(managerDoc && managerDoc.paths ? managerDoc.paths : {}),
+  ...(categoryDoc && categoryDoc.paths ? categoryDoc.paths : {}),
 };
 
 export const specs = {

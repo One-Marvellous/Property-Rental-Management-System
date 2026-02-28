@@ -9,8 +9,6 @@ import { zodValidation } from '../middlewares/zodValidation.middleware.js';
 import {
   getUsersValidator,
   idParamValidator,
-  createCategoryValidator,
-  editCategoryValidator,
   getManagerApplicationsValidator,
   getPropertySubmissionsValidator,
   rejectPropertySubmissionValidator,
@@ -31,24 +29,6 @@ router.patch(
   '/user/:id/suspend',
   zodValidation(idParamValidator),
   adminController.suspendUser
-);
-
-router.post(
-  '/categories',
-  zodValidation(createCategoryValidator),
-  adminController.createCategory
-);
-
-router.patch(
-  '/categories/:id',
-  zodValidation(editCategoryValidator),
-  adminController.editCategory
-);
-
-router.delete(
-  '/categories/:id',
-  zodValidation(idParamValidator),
-  adminController.deleteCategory
 );
 
 router.get(

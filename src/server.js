@@ -10,6 +10,7 @@ import authRoutes from './routes/auth.routes.js';
 import propertyManagerRoutes from './routes/propertyManager.routes.js';
 import userRoutes from './routes/user.routes.js';
 import propertyRoutes from './routes/property.routes.js';
+import categoryRoutes from './routes/category.routes.js';
 import transactionRoutes from './routes/transaction.route.js';
 import globalErrorHandler from './middlewares/error.middleware.js';
 import cors from 'cors';
@@ -39,6 +40,10 @@ app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
 // Swagger API Documentation
 app.use('/api/doc', swaggerUi.serve, swaggerUi.setup(specs));
+app.use('/api/doc-json', (_, res) => {
+  res.setHeader('Content-Type', 'application/json');
+  res.send(specs);
+});
 
 app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
@@ -46,8 +51,9 @@ app.use('/api/v1/manager', propertyManagerRoutes);
 app.use('/api/v1/user', userRoutes);
 app.use('/webhook', transactionRoutes);
 app.use('/api/v1/properties', propertyRoutes);
+app.use('/api/v1/categories', categoryRoutes);
 
-app.get('/api/v1/health', (req, res) => {
+app.get('/api/v1/health', (_, res) => {
   res.status(200).json(
     new ApiResponse(true, 'connection ok', {
       message: 'API is up and running',

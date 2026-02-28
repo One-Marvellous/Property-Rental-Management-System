@@ -7,6 +7,7 @@ import { ENV } from '../config/env.js';
 import {
   property_approval_status,
   manager_application_status,
+  user_status,
 } from '../generated/prisma/index.js';
 
 /**
@@ -84,88 +85,14 @@ class AdminService {
     }
 
     // Check if user is already suspended
-    if (user.is_suspended) {
+    if (user.status === user_status.suspended) {
       throw new ApiError(409, 'User is already suspended');
     }
 
     // Update user suspension status
     await prisma.users.update({
       where: { id: userId },
-      data: { is_suspended: true },
-    });
-  }
-
-  /**
-   * Creates a new property category
-   * @param {object} categoryData - Category information
-   * @param {string} categoryData.name - Category name (must be unique)
-   * @param {string} categoryData.description - Category description
-   * @returns {Promise<object>} The created category object
-   * @throws {ApiError} If category name already exists (409)
-   */
-  async createCategory(categoryData) {
-    const { name, description } = categoryData;
-
-    // Verify category name uniqueness
-    const existingCategory = await prisma.categories.findUnique({
-      where: { name },
-    });
-    if (existingCategory) {
-      throw new ApiError(409, 'Category with this name already exists');
-    }
-
-    // Insert new category into database
-    const newCategory = await prisma.categories.create({
-      data: {
-        name,
-        description,
-      },
-    });
-
-    return newCategory;
-  }
-
-  /**
-   * Updates an existing category description
-   * @param {string} categoryId - The ID of the category to update
-   * @param {string} description - New description for the category
-   * @returns {Promise<object>} The updated category object
-   * @throws {ApiError} If category not found (404)
-   */
-  async editCategory(categoryId, description) {
-    // Update category description in database
-    const updatedCategory = await prisma.categories.update({
-      where: { id: categoryId },
-      data: {
-        description,
-      },
-    });
-
-    if (!updatedCategory) {
-      throw new ApiError(404, 'Category not found');
-    }
-
-    return updatedCategory;
-  }
-
-  /**
-   * Deletes a property category
-   * @param {string} categoryId - The ID of the category to delete
-   * @throws {ApiError} If category not found (404)
-   */
-  async deleteCategory(categoryId) {
-    // Verify category exists before deletion
-    const category = await prisma.categories.findUnique({
-      where: { id: categoryId },
-    });
-
-    if (!category) {
-      throw new ApiError(404, 'Category not found');
-    }
-
-    // Remove category from database
-    await prisma.categories.delete({
-      where: { id: categoryId },
+      data: { user_status: user_status.suspended },
     });
   }
 
@@ -240,7 +167,7 @@ class AdminService {
       where: { id: applicationId },
       include: {
         users_property_manager_applications_user_idTousers: {
-          omit: { password_hash: true, is_suspended: true, created_at: true },
+          omit: { password_hash: true, created_at: true },
         },
       },
     });
@@ -432,10 +359,11 @@ class AdminService {
   /**
    * Rejects a pending property submission with reason
    * @param {string} propertyId - The ID of the property to reject
+   * @param {string} reviewerId - The ID of the admin rejecting the property
    * @param {string} rejectionReason - The reason for rejecting the property
    * @throws {ApiError} If property not found (404) or not in pending status (400)
    */
-  async rejectPropertySubmission(propertyId, rejectionReason) {
+  async rejectPropertySubmission({ propertyId, reviewerId, rejectionReason }) {
     // Verify property exists
     const property = await prisma.properties.findUnique({
       where: { id: propertyId },
@@ -455,6 +383,8 @@ class AdminService {
       data: {
         approval_status: property_approval_status.rejected,
         rejection_reason: rejectionReason,
+        rejected_at: new Date(),
+        rejected_by: reviewerId,
       },
     });
   }
@@ -462,9 +392,10 @@ class AdminService {
   /**
    * Suspends an approved property from public listing
    * @param {string} propertyId - The ID of the property to suspend
+   * @param {string} reviewerId - The ID of the admin suspending the property
    * @throws {ApiError} If property not found (404) or not in approved status (400)
    */
-  async suspendProperty(propertyId) {
+  async suspendProperty({ propertyId, reviewerId }) {
     // Verify property exists
     const property = await prisma.properties.findUnique({
       where: { id: propertyId },
@@ -483,6 +414,8 @@ class AdminService {
       where: { id: propertyId },
       data: {
         approval_status: property_approval_status.suspended,
+        suspended_at: new Date(),
+        suspended_by: reviewerId,
       },
     });
   }

@@ -61,6 +61,10 @@ export const createCategoryValidator = z.object({
       })
       .min(10, 'Description must be at least 10 characters')
       .max(500, 'Description must not exceed 500 characters'),
+    displayOrder: z
+      .union([z.number(), z.string()])
+      .pipe(z.coerce.number().positive('Base price must be a positive number'))
+      .optional(),
   }),
   query: z.object({}).strict().optional(),
   params: z.object({}).strict().optional(),
@@ -79,6 +83,10 @@ export const editCategoryValidator = z.object({
       })
       .min(10, 'Description must be at least 10 characters')
       .max(500, 'Description must not exceed 500 characters'),
+    displayOrder: z
+      .union([z.number(), z.string()])
+      .pipe(z.coerce.number().positive('Base price must be a positive number'))
+      .optional(),
   }),
   query: z.object({}).strict().optional(),
   params: z.object({
