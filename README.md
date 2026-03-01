@@ -36,7 +36,7 @@ distribution.
 - Supports:
   - Full payments
   - Installment payments
-- Payment history for tenants, managers, and admins
+- Payment history for users, managers, and admins
 
 ### 🧩 Scalable Architecture
 
@@ -111,7 +111,7 @@ graph LR
 2. **Install dependencies**
 
    ```bash
-   npm install
+   npm i
    ```
 
 3. **Set up your PostgreSQL database**
@@ -196,9 +196,7 @@ graph LR
      ```bash
      cp .env.sample .env
      ```
-   - Update `.env` with your database connection:
-
-     **For Local PostgreSQL:**
+   - Update `.env` with your database connection and secrets:
 
      ```env
      PORT=3000
@@ -207,16 +205,7 @@ graph LR
      ...
      ```
 
-     **For Cloud PostgreSQL (Render or Neon):**
-
-     ```env
-     PORT=3000
-     DATABASE_URL=postgresql://user:password@host:port/database
-     NODE_ENV=development
-     ...
-     ```
-
-   > **Note**: see `Integration Setup` for setup for Cloudinary and Stripe
+     > **Note**: see `Integration Setup` for setup for Cloudinary and Stripe
 
 6. **Generate Prisma Client**
 
@@ -259,7 +248,7 @@ This project uses Stripe for secure payment processing. To enable Stripe:
    ```
 
 4. The backend uses `STRIPE_SECRET_KEY` for server-side API calls and webhook verification.
-5. Webhook events are handled at `/webhook` (see routes and docs).
+5. Webhook events are handled at `/webhook` (see routes for details).
 6. To test payments, use Stripe's test card numbers and the test mode.
 
 **Stripe config:**
@@ -317,7 +306,7 @@ The Swagger UI interface allows you to:
 
 You can easily migrate and test the API endpoints in Postman by importing the OpenAPI/Swagger documentation:
 
-1. **Start the server**: Make sure your server is running locally `npm run dev` (usually on port 3000).
+1. **Start the server**: Make sure your server is running locally `npm run dev`
 2. **Open Postman** and click on **Import**.
 3. Select the **Link** tab and enter:
 
@@ -386,7 +375,6 @@ npm run lint
 ### Project Structure
 
 ```
-.
 ├── src/
 │   ├── server.js        # Main server entry point
 │   ├── config/          # Configuration files
@@ -412,14 +400,6 @@ npm run lint
 ├── package-lock.json    # Dependency lock file
 └── README.md            # This file
 ```
-
-## Best Practices
-
-1. **Always install dependencies** with `npm i` before starting development
-2. **Set up your environment variables** by creating a `.env` file from `.env.sample`
-3. **Format your code** using `npm run format` and check for errors within your code using `npm run lint` before pushing changes
-4. **Never commit** the `.env`, `generated` or `node_modules` files
-5. **Use descriptive commit messages** and keep commits atomic
 
 ## Git Workflow
 
@@ -471,7 +451,7 @@ ISC
 
 For issues, questions, or contributions, please open an issue or contact the development team or [TS Academy](https://tsacademyonline.com)
 
-## 👥 Team
+## Team
 
 **Lead Developer**
 
