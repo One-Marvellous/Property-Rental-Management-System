@@ -14,6 +14,7 @@ import {
   schedule_status,
   rental_status,
   invoice_status,
+  payment_status,
 } from '../generated/prisma/index.js';
 import { PaymentMode } from '../models/paymentMode.js';
 import stripe from '../config/stripe.js';
@@ -26,16 +27,17 @@ import stripe from '../config/stripe.js';
  */
 class UserService {
   /**
-   * Switch a user's role (e.g., from regular user to property manager)
+   * Switch a user's role from one to another (e.g., user to manager) if they have been assigned the new role by admin
+   * @param {object} data
    * @param {string} data.userId - ID of the user whose role is to be switched
-   * @param {string} data.newRole - The new role to assign to the user (e.g., 'user', 'manager')
+   * @param {'manager'|'user'} data.newRole - The new role to assign to the user
    * @returns {Promise<object>} Updated user data and new JWT tokens
    * @throws {ApiError} Throws ApiError for invalid role, insufficient permissions, or revoked roles
    */
   async switchUserRole(data) {
     const { userId, newRole } = data;
 
-    // check if the user have been assigned the manager role
+    // check if the user have been assigned the role
     const existingRole = await prisma.user_roles.findFirst({
       where: {
         user_id: userId,
@@ -62,7 +64,7 @@ class UserService {
     // get user
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      omit: { password_hash: true, is_suspended: true },
+      omit: { password_hash: true },
     });
 
     // generate new token with the new role
@@ -85,11 +87,12 @@ class UserService {
    * @param {string} bookingData.userId - ID of the booking user
    * @param {string} bookingData.propertyId - ID of the property to book
    * @param {number} bookingData.duration - Duration in units matching property pricing_unit
+   * @param {Date} bookingData.startDate - Start date of the booking
    * @returns {Promise<object>} Created booking record
    * @throws {ApiError} If property not found, not approved, or not available
    */
   async createBooking(bookingData) {
-    const { userId, propertyId, duration } = bookingData;
+    const { userId, propertyId, duration, startDate } = bookingData;
 
     // Verify property exists
     const property = await prisma.properties.findUnique({
@@ -115,7 +118,7 @@ class UserService {
 
     // use switch to go through the pricing_unit and determine duration and calculate end date
 
-    const endDate = calculateFutureDate(pricing_unit, duration);
+    const endDate = calculateFutureDate({ pricing_unit, duration, startDate });
 
     const proposedAmount = base_price * duration;
 
@@ -124,7 +127,7 @@ class UserService {
       data: {
         user_id: userId,
         property_id: propertyId,
-        start_date: new Date(),
+        start_date: startDate,
         end_date: endDate,
         proposed_amount: proposedAmount,
       },
@@ -141,9 +144,9 @@ class UserService {
    * @param {number} [filters.limit=ENV.LIMIT] - Items per page
    * @param {string} [filters.from] - ISO start date to filter created_at
    * @param {string} [filters.to] - ISO end date to filter created_at
-   * @param {string} [filters.order='desc'] - Sort order for created_at
+   * @param {'asc'|'desc'} [filters.order='desc'] - Sort order for created_at
    * @param {string} filters.userId - ID of the user
-   * @param {string} filters.status - Booking status filter (optional) [booking_status]
+   * @param {'pending'|'approved'|'rejected'|'cancelled'|'expired'} filters.status - Booking status filter (optional)
    * @returns {Promise<object>} Paginated response containing user's bookings
    * @throws {ApiError} If no bookings are found for the user (404)
    */
@@ -358,8 +361,6 @@ class UserService {
       where: { id: application.id },
       data: {
         status: manager_application_status.cancelled,
-        cancelled_by: userId,
-        cancelled_at: new Date(),
       },
     });
   }
@@ -525,7 +526,7 @@ class UserService {
    * @param {object} data
    * @param {string} data.rentalId - ID of the rental
    * @param {string} data.userId - ID of the user
-   * @param {string} data.paymentMode - Mode of payment (full or installment)
+   * @param {'full'|'installment'} data.paymentMode - Mode of payment
    * @returns {Promise<string>} Application status
    * @throws {ApiError} If application not found
    */
@@ -625,6 +626,85 @@ class UserService {
    */
   async getCheckoutSession(sessionId) {
     return await stripe.checkout.sessions.retrieve(sessionId);
+  }
+
+  /**
+   * Retrieves payment history for a user with pagination and optional date filtering
+   * @param {object} data
+   * @param {string} data.userId - ID of the user
+   * @param {number} [data.page=1] - Page number for pagination
+   * @param {number} [data.limit=ENV.LIMIT] - Number of items per page
+   * @param {string} [data.from] - ISO start date to filter payments
+   * @param {string} [data.to] - ISO end date to filter payments
+   * @param {'desc'| 'asc'} [data.order='desc'] - Sort order for payment date
+   * @returns {Promise<object>} Paginated response containing payment history
+   */
+  async getUserPaymentHistory(data) {
+    const {
+      userId,
+      page = 1,
+      limit = ENV.LIMIT || 15,
+      from,
+      to,
+      order = OrderStatus.DESC,
+    } = data;
+
+    const where = {};
+
+    const { skip, take } = getPagination({ page, limit });
+
+    if (from || to) {
+      where.created_at = {};
+      if (from) where.created_at.gte = new Date(from);
+      if (to) where.created_at.lte = new Date(to);
+    }
+
+    const payments = await prisma.payments.findMany({
+      where: {
+        ...where,
+        payment_status: payment_status.successful,
+        invoices: {
+          rentals: {
+            user_id: userId,
+          },
+        },
+      },
+      include: {
+        invoices: {
+          include: {
+            rentals: {
+              include: {
+                properties: {
+                  select: { title: true, city: true, state: true, id: true },
+                },
+              },
+            },
+          },
+        },
+      },
+      orderBy: { created_at: order },
+      skip,
+      take,
+    });
+
+    const formattedPayments = payments.map((p) => ({
+      payment_id: p.id,
+      amount: p.amount,
+      paid_at: p.paid_at,
+      property_id: p.invoices.rentals.properties.id,
+      property_title: p.invoices.rentals.properties.title,
+      city: p.invoices.rentals.properties.city,
+      state: p.invoices.rentals.properties.state,
+    }));
+
+    const total = await prisma.invoices.count({ where });
+
+    return buildPaginatedResponse({
+      data: formattedPayments,
+      total,
+      page,
+      limit,
+    });
   }
 }
 

@@ -8,9 +8,17 @@ import { PaymentMode } from '../models/paymentMode.js';
  * Validates role switching request
  */
 export const switchUserRoleValidator = z.object({
-  body: z.object({
-    newRole: z.enum(Object.values(UserRole)),
-  }),
+  body: z
+    .object({
+      newRole: z.enum(
+        Object.values(UserRole).filter((role) => role !== UserRole.ADMIN),
+        {
+          invalid_type_error: 'Invalid role type',
+          required_error: 'New role is required',
+        }
+      ),
+    })
+    .strict(),
   query: z.object({}).strict().optional(),
   params: z.object({}).strict().optional(),
 });
@@ -26,6 +34,10 @@ export const createBookingValidator = z.object({
       .union([z.number(), z.string()])
       .pipe(z.coerce.number().positive('Duration must be a positive number'))
       .default(1),
+    startDate: z
+      .string()
+      .optional()
+      .transform((val) => (val ? new Date(val) : new Date())),
   }),
   query: z.object({}).strict().optional(),
   params: z.object({}).strict().optional(),
@@ -138,4 +150,33 @@ export const sessionIdParamValidator = z.object({
   params: z.object({
     session_id: z.uuid('Invalid ID format'),
   }),
+});
+
+/**
+ * Get User Payment History Validator Schema
+ * Validates pagination and filter parameters for user payment history
+ */
+export const getUserPaymentHistoryValidator = z.object({
+  body: z.object({}).strict().optional(),
+  query: z
+    .object({
+      page: z
+        .string({
+          invalid_type_error: 'Page must be a string',
+        })
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      limit: z
+        .string({
+          invalid_type_error: 'Limit must be a string',
+        })
+        .optional()
+        .transform((val) => (val ? parseInt(val, 10) : undefined)),
+      from: z.iso.datetime('Invalid date format').optional(),
+      to: z.iso.datetime('Invalid date format').optional(),
+      order: z.enum(['asc', 'desc']).optional(),
+    })
+    .strict()
+    .optional(),
+  params: z.object({}).strict().optional(),
 });

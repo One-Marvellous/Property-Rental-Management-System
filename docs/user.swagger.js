@@ -85,6 +85,11 @@ export default {
                 properties: {
                   propertyId: { type: 'string', example: 'prop_123abc' },
                   duration: { type: 'integer', example: 3 },
+                  startDate: {
+                    type: 'string',
+                    format: 'date-time',
+                    example: '2024-07-01T14:00:00Z',
+                  },
                 },
               },
             },
@@ -557,7 +562,69 @@ export default {
               },
             },
           },
-          404: { description: 'Invoice or rental not found' },
+          404: {
+            description: 'Invoice or rental not found',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/user/history/payments': {
+      get: {
+        summary: 'Get user payment history',
+        description:
+          "Retrieve authenticated user's payment history with pagination and filters.",
+        tags: ['User'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'page',
+            schema: { type: 'integer', default: 1 },
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 15 },
+          },
+          {
+            in: 'query',
+            name: 'from',
+            schema: { type: 'string', format: 'date-time' },
+          },
+          {
+            in: 'query',
+            name: 'to',
+            schema: { type: 'string', format: 'date-time' },
+          },
+          {
+            in: 'query',
+            name: 'order',
+            schema: { type: 'string', enum: ['asc', 'desc'], default: 'desc' },
+          },
+        ],
+        responses: {
+          200: {
+            description: 'User payment history fetched successfully',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/PaginatedPayments' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
         },
       },
     },

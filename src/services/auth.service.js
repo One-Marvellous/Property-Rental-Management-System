@@ -4,6 +4,7 @@ import { prisma } from '../config/db.js';
 import ApiError from '../utils/apiError.js';
 import { UserRole } from '../models/roles.js';
 import { resolveUserRole } from '../utils/resolveUserRole.js';
+import { user_status } from '../generated/prisma/index.js';
 
 /**
  * AuthService handles user authentication, registration, and token management
@@ -70,7 +71,6 @@ class AuthService {
           phone_number: phoneNumber,
         },
         omit: {
-          is_suspended: true,
           password_hash: true,
         },
       });
@@ -135,8 +135,15 @@ class AuthService {
     /**
      * If user is suspended due to malicious activity → account suspended
      */
-    if (user.is_suspended) {
+    if (user.status != user_status.suspended) {
       throw new ApiError(403, 'Account suspended');
+    }
+
+    /**
+     * Deactivated users should not be able to log in
+     */
+    if (user.status != user_status.active) {
+      throw new ApiError(403, 'Account deactivated');
     }
 
     /**

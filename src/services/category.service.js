@@ -8,6 +8,10 @@ import ApiError from '../utils/apiError.js';
  * that have properties attached.
  */
 class CategoryService {
+  /**
+   * Retrieves all property categories sorted by display order
+   * @returns {Promise<object>} An object containing an array of categories
+   */
   async getAllCategory() {
     const categories = await prisma.categories.findMany({
       orderBy: {
@@ -17,6 +21,7 @@ class CategoryService {
 
     return { categories };
   }
+
   /**
    * Creates a new property category
    * @param {object} categoryData - Category information

@@ -79,4 +79,6 @@ router.patch(
   adminController.suspendProperty
 );
 
+router.get('/income-per-property', adminController.getIncomePerProperty);
+
 export default router;

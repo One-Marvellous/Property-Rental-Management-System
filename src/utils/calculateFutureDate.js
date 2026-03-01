@@ -1,7 +1,7 @@
 import { pricing_unit } from '../generated/prisma/index.js';
 
-export const calculateFutureDate = (unit, multiplier = 1) => {
-  const today = new Date();
+export const calculateFutureDate = ({ unit, multiplier = 1, startDate }) => {
+  const today = startDate || new Date();
   let result;
 
   switch (unit) {

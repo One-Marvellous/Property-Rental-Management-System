@@ -31,8 +31,9 @@ class AdminController {
   async suspendUser(req, res) {
     try {
       const userId = req.params.id;
+      const adminId = req.user.userId;
 
-      await adminService.suspendUser(userId);
+      await adminService.suspendUser({ userId, adminId });
       res
         .status(200)
         .json(new ApiResponse(true, 'User suspended successfully'));
@@ -114,7 +115,11 @@ class AdminController {
     try {
       const applicationId = req.params.id;
       const reviewerId = req.user.userId;
-      await adminService.approveManagerApplication(applicationId, reviewerId);
+
+      await adminService.approveManagerApplication({
+        applicationId,
+        reviewerId,
+      });
       res
         .status(200)
         .json(
@@ -140,7 +145,10 @@ class AdminController {
     try {
       const applicationId = req.params.id;
       const reviewerId = req.user.userId;
-      await adminService.rejectManagerApplication(applicationId, reviewerId);
+      await adminService.rejectManagerApplication({
+        applicationId,
+        reviewerId,
+      });
       res
         .status(200)
         .json(
@@ -270,6 +278,17 @@ class AdminController {
           .status(500)
           .json(new ApiResponse(false, 'Failed to suspend property'));
       }
+    }
+  }
+
+  async getIncomePerProperty(_, res, next) {
+    try {
+      const result = await adminService.getIncomePerProperty();
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Earning Retrieved successfully', result));
+    } catch (error) {
+      next(error);
     }
   }
 }

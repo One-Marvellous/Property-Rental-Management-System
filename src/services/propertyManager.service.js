@@ -60,9 +60,13 @@ class PropertyManagerService {
       },
       omit: {
         approved_at: true,
+        rejected_at: true,
+        suspended_at: true,
+        deleted_at: true,
         approved_by: true,
+        rejected_by: true,
+        suspended_by: true,
         rejection_reason: true,
-        approval_status: true,
       },
     });
 
@@ -112,9 +116,13 @@ class PropertyManagerService {
       },
       omit: {
         approved_at: true,
+        rejected_at: true,
+        suspended_at: true,
+        deleted_at: true,
         approved_by: true,
+        rejected_by: true,
+        suspended_by: true,
         rejection_reason: true,
-        approval_status: true,
       },
     });
 
@@ -472,7 +480,7 @@ class PropertyManagerService {
       },
     });
 
-    const total = await prisma.properties.count({
+    const total = await prisma.bookings.count({
       where: { properties: { manager_id: userId }, ...where },
     });
 
@@ -651,6 +659,48 @@ class PropertyManagerService {
         status: booking_status.rejected,
       },
     });
+  }
+
+  /**
+   * Calculate total manager earnings and gross amount per property for a given manager.
+   * @param {number} managerId - ID of the manager to calculate earnings for
+   * @returns {Promise<Array>} Array of objects containing property_id, property_title, city, state, total_manager_earnings, and total_gross
+   */
+  async getIncome(managerId) {
+    // Aggregate total manager earnings and gross amount per property for the given manager
+    const managerIncome = await prisma.property_earnings.groupBy({
+      by: ['property_id'],
+      where: {
+        property: {
+          manager_id: managerId, // filter earnings only for this manager
+        },
+      },
+      _sum: {
+        manager_earnings: true,
+        gross_amount: true,
+      },
+    });
+
+    // For each property, fetch the title, city, and state to include in the response
+    const result = await Promise.all(
+      managerIncome.map(async (item) => {
+        const property = await prisma.properties.findUnique({
+          where: { id: item.property_id },
+          select: { title: true, city: true, state: true },
+        });
+        // Return combined result with property details and earnings
+        return {
+          property_id: item.property_id,
+          property_title: property?.title,
+          city: property?.city,
+          state: property?.state,
+          total_manager_earnings: item._sum.manager_earnings,
+          total_gross: item._sum.gross_amount,
+        };
+      })
+    );
+
+    return result;
   }
 }
 

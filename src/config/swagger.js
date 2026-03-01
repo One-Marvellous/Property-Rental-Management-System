@@ -406,6 +406,26 @@ const swaggerOptions = {
           },
         },
 
+        Payment: {
+          type: 'object',
+          properties: {
+            payment_id: { type: 'string', example: 'pay_123abc' },
+            amount: { type: 'number', example: 1500.0 },
+            paid_at: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T12:00:00Z',
+            },
+            property_id: { type: 'string', example: 'prop_456def' },
+            property_title: {
+              type: 'string',
+              example: 'Cozy Apartment in Downtown',
+            },
+            city: { type: 'string', example: 'New York' },
+            state: { type: 'string', example: 'NY' },
+          },
+        },
+
         /** ---------------- PAGINATION ---------------- */
         PaginationMeta: {
           type: 'object',
@@ -486,6 +506,21 @@ const swaggerOptions = {
                 data: {
                   type: 'array',
                   items: { $ref: '#/components/schemas/ManagerApplication' },
+                },
+              },
+            },
+          ],
+        },
+
+        PaginatedPayments: {
+          allOf: [
+            { $ref: '#/components/schemas/PaginatedResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Payment' },
                 },
               },
             },

@@ -91,15 +91,11 @@ CREATE TABLE property_manager_applications (
   status manager_application_status NOT NULL DEFAULT 'pending',
   reviewed_by UUID REFERENCES users(id) ON DELETE SET NULL,
   reviewed_at TIMESTAMP,
-  cancelled_by UUID REFERENCES users(id) ON DELETE SET NULL,
-  cancelled_at TIMESTAMP,
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   CHECK (
-    (status = 'pending' AND reviewed_by IS NULL AND reviewed_at IS NULL AND cancelled_by IS NULL)
+    (status = 'pending' AND reviewed_by IS NULL AND reviewed_at IS NULL)
     OR
-    (status IN ('approved','rejected') AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL AND cancelled_by IS NULL)
-    OR
-    (status = 'cancelled' AND cancelled_by IS NOT NULL)
+    (status IN ('approved','rejected') AND reviewed_by IS NOT NULL AND reviewed_at)
   )
 );
 CREATE INDEX idx_manager_app_status_created ON property_manager_applications(status, created_at);
@@ -125,6 +121,7 @@ CREATE TABLE properties (
   manager_id UUID NOT NULL REFERENCES users(id),
   approved_by UUID REFERENCES users(id) ON DELETE SET NULL,
   approved_at TIMESTAMP,
+  rejection_reason TEXT,
   rejected_by UUID REFERENCES users(id) ON DELETE SET NULL,
   rejected_at TIMESTAMP,
   suspended_by UUID REFERENCES users(id) ON DELETE SET NULL,
@@ -132,11 +129,11 @@ CREATE TABLE properties (
   created_at TIMESTAMP NOT NULL DEFAULT NOW(),
   deleted_at TIMESTAMP NULL,
   CHECK (
-    (approval_status IN ('draft','pending') AND approved_by IS NULL AND approved_at IS NULL)
+    (approval_status IN ('draft','pending') AND approved_by IS NULL AND approved_at IS NULL AND rejected_by IS NULL AND rejected_at IS NULL AND rejection_reason IS NULL AND suspended_by IS NULL AND suspended_at IS NULL)
     OR
     (approval_status = 'approved' AND approved_by IS NOT NULL AND approved_at IS NOT NULL)
     OR
-    (approval_status = 'rejected' AND rejected_by IS NOT NULL AND rejected_at IS NOT NULL)
+    (approval_status = 'rejected' AND rejected_by IS NOT NULL AND rejected_at IS NOT NULL AND rejection_reason IS NOT NULL)
     OR
     (approval_status = 'suspended' AND suspended_by IS NOT NULL AND suspended_at IS NOT NULL)
   )

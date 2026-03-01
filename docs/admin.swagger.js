@@ -108,162 +108,6 @@ export default {
       },
     },
 
-    '/api/v1/admin/categories': {
-      post: {
-        summary: 'Create a new category',
-        description: 'Create a new property category. Admin only.',
-        tags: ['Admin'],
-        security: [{ BearerAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['name', 'description'],
-                properties: {
-                  name: { type: 'string', example: 'Apartment' },
-                  description: {
-                    type: 'string',
-                    example: 'Modern apartment listings',
-                  },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          201: {
-            description: 'Category created successfully',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/CategoryResponse' },
-              },
-            },
-          },
-          409: {
-            description: 'Category with this name already exists',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-          401: {
-            description: 'Unauthorized',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
-    },
-
-    '/api/v1/admin/categories/{id}': {
-      patch: {
-        summary: 'Update a category',
-        description:
-          'Update the description of an existing category. Admin only.',
-        tags: ['Admin'],
-        security: [{ BearerAuth: [] }],
-        parameters: [
-          {
-            in: 'path',
-            name: 'id',
-            required: true,
-            schema: { type: 'string' },
-            description: 'Category ID',
-          },
-        ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['description'],
-                properties: {
-                  description: {
-                    type: 'string',
-                    example: 'Updated category description',
-                  },
-                },
-              },
-            },
-          },
-        },
-        responses: {
-          200: {
-            description: 'Category updated successfully',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/CategoryResponse' },
-              },
-            },
-          },
-          404: {
-            description: 'Category not found',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-          401: {
-            description: 'Unauthorized',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
-
-      delete: {
-        summary: 'Delete a category',
-        description: 'Delete a property category. Admin only.',
-        tags: ['Admin'],
-        security: [{ BearerAuth: [] }],
-        parameters: [
-          {
-            in: 'path',
-            name: 'id',
-            required: true,
-            schema: { type: 'string' },
-            description: 'Category ID',
-          },
-        ],
-        responses: {
-          200: {
-            description: 'Category deleted successfully',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ApiResponse' },
-              },
-            },
-          },
-          404: {
-            description: 'Category not found',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-          401: {
-            description: 'Unauthorized',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
-        },
-      },
-    },
     '/api/v1/admin/manager-applications': {
       get: {
         summary: 'Get manager applications',
@@ -289,6 +133,7 @@ export default {
             name: 'status',
             schema: {
               type: 'string',
+              example: 'pending',
               enum: Object.values(property_approval_status),
             },
             description: 'Filter by application status',
@@ -638,6 +483,75 @@ export default {
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/admin/income-per-property': {
+      get: {
+        summary: 'Get income per property',
+        description: 'Retrieve income data for each property. Admin only.',
+        tags: ['Admin'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Property ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Income data retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/ApiResponse' },
+                    {
+                      type: 'object',
+                      properties: {
+                        data: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              property_id: {
+                                type: 'string',
+                                example: 'prop_1234567890',
+                              },
+                              property_title: {
+                                type: 'string',
+                                example: 'Luxury Beachfront Villa',
+                              },
+                              manager_id: {
+                                type: 'string',
+                                example: 'mgr_1234567890',
+                              },
+                              total_platform_fee: {
+                                type: 'number',
+                                example: 5000,
+                              },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
               },
             },
           },
