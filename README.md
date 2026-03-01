@@ -1,18 +1,16 @@
-# Property Rental Management System
+# 🏠 Property Rental Management System (PRMS)
 
-## Overview
+![Node.js](https://img.shields.io/badge/Node.js-v20+-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
+![Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748)
+![License](https://img.shields.io/badge/License-ISC-lightgrey)
+![API](https://img.shields.io/badge/API-REST-success)
+![Architecture](https://img.shields.io/badge/Architecture-Service--Layered-orange)
+![Status](https://img.shields.io/badge/Status-MVP--Production--Ready-success)
 
-The **Property Rental Management System** is a scalable backend
-application designed to manage the complete lifecycle of property
-rentals --- from property listing and booking requests to rental
-activation and structured payment tracking.
-
-It supports **multi-role access control** (Admin, User, and Property
-Manager) with secure authentication, role switching, and an approval
-workflow for property manager applications. The system is built as a
-**production-ready MVP** with a normalized PostgreSQL schema, RESTful
-API architecture, and flexible pricing models suitable for apartments,
-hotels, and event spaces.
+A production-oriented backend platform for managing the lifecycle of
+property rentals --- listings, bookings, rentals, payments, and earnings
+distribution.
 
 ---
 
@@ -46,17 +44,6 @@ hotels, and event spaces.
 - Clean REST API design
 - Transaction-safe admin operations
 - Designed for SaaS scalability and future extensions
-
----
-
-## Tech Stack
-
-- **Runtime**: Node.js (ES Modules)
-- **Framework**: Express.js
-- **Database**: PostgreSQL
-- **ORM**: Prisma
-- **Code Formatting**: Prettier
-- **Environment Management**: dotenv
 
 ---
 
@@ -124,7 +111,7 @@ graph LR
 2. **Install dependencies**
 
    ```bash
-   npm i
+   npm install
    ```
 
 3. **Set up your PostgreSQL database**
@@ -246,8 +233,6 @@ graph LR
    ```bash
    npm run seed
    ```
-
-   > **Note**: This command is configured in `prisma.config.ts` It initializes essential data required for the application to function properly.
 
 8. **Run the application**
 
@@ -486,7 +471,14 @@ ISC
 
 For issues, questions, or contributions, please open an issue or contact the development team or [TS Academy](https://tsacademyonline.com)
 
+## 👥 Team
+
+**Lead Developer**
+
 - Marvellous Fawole — https://github.com/One-Marvellous
+
+**Contributors**
+
 - Damilola Adegbite — https://github.com/dax-side
 - John Oluwatobi — https://github.com/JOHNNY-OBA
 - Sunday Alabi — https://github.com/iamalabisunday

@@ -68,6 +68,7 @@ model properties {
   manager_id                           String                       @db.Uuid
   approved_by                          String?                      @db.Uuid
   approved_at                          DateTime?                    @db.Timestamp(6)
+  rejection_reason                     String?
   rejected_by                          String?                      @db.Uuid
   rejected_at                          DateTime?                    @db.Timestamp(6)
   suspended_by                         String?                      @db.Uuid
@@ -144,25 +145,24 @@ model user_roles {
 }
 
 model users {
-  id                                                                              String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  first_name                                                                      String                          @db.VarChar
-  last_name                                                                       String                          @db.VarChar
-  email                                                                           String                          @unique @db.VarChar
-  password_hash                                                                   String                          @db.VarChar
-  phone_number                                                                    String?                         @db.VarChar
-  status                                                                          user_status                     @default(active)
-  deleted_at                                                                      DateTime?                       @db.Timestamp(6)
-  created_at                                                                      DateTime                        @default(now()) @db.Timestamp(6)
-  bookings                                                                        bookings[]
-  properties_properties_approved_byTousers                                        properties[]                    @relation("properties_approved_byTousers")
-  properties_properties_manager_idTousers                                         properties[]                    @relation("properties_manager_idTousers")
-  properties_properties_rejected_byTousers                                        properties[]                    @relation("properties_rejected_byTousers")
-  properties_properties_suspended_byTousers                                       properties[]                    @relation("properties_suspended_byTousers")
-  property_manager_applications_property_manager_applications_cancelled_byTousers property_manager_applications[] @relation("property_manager_applications_cancelled_byTousers")
-  property_manager_applications_property_manager_applications_reviewed_byTousers  property_manager_applications[] @relation("property_manager_applications_reviewed_byTousers")
-  property_manager_applications_property_manager_applications_user_idTousers      property_manager_applications?  @relation("property_manager_applications_user_idTousers")
-  rentals                                                                         rentals[]
-  user_roles_user_roles_user_idTousers                                            user_roles[]                    @relation("user_roles_user_idTousers")
+  id                                                                             String                          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  first_name                                                                     String                          @db.VarChar
+  last_name                                                                      String                          @db.VarChar
+  email                                                                          String                          @unique @db.VarChar
+  password_hash                                                                  String                          @db.VarChar
+  phone_number                                                                   String?                         @db.VarChar
+  status                                                                         user_status                     @default(active)
+  deleted_at                                                                     DateTime?                       @db.Timestamp(6)
+  created_at                                                                     DateTime                        @default(now()) @db.Timestamp(6)
+  bookings                                                                       bookings[]
+  properties_properties_approved_byTousers                                       properties[]                    @relation("properties_approved_byTousers")
+  properties_properties_manager_idTousers                                        properties[]                    @relation("properties_manager_idTousers")
+  properties_properties_rejected_byTousers                                       properties[]                    @relation("properties_rejected_byTousers")
+  properties_properties_suspended_byTousers                                      properties[]                    @relation("properties_suspended_byTousers")
+  property_manager_applications_property_manager_applications_reviewed_byTousers property_manager_applications[] @relation("property_manager_applications_reviewed_byTousers")
+  property_manager_applications_property_manager_applications_user_idTousers     property_manager_applications?  @relation("property_manager_applications_user_idTousers")
+  rentals                                                                        rentals[]
+  user_roles_user_roles_user_idTousers                                           user_roles[]                    @relation("user_roles_user_idTousers")
 
   @@index([created_at], map: "idx_users_created_at")
   @@index([status], map: "idx_users_status")
@@ -227,18 +227,15 @@ model platform_settings {
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model property_manager_applications {
-  id                                                      String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                                                 String                     @unique(map: "idx_unique_pending_application", where: raw("(status = 'pending'::manager_application_status)")) @db.Uuid
-  reason                                                  String
-  status                                                  manager_application_status @default(pending)
-  reviewed_by                                             String?                    @db.Uuid
-  reviewed_at                                             DateTime?                  @db.Timestamp(6)
-  cancelled_by                                            String?                    @db.Uuid
-  cancelled_at                                            DateTime?                  @db.Timestamp(6)
-  created_at                                              DateTime                   @default(now()) @db.Timestamp(6)
-  users_property_manager_applications_cancelled_byTousers users?                     @relation("property_manager_applications_cancelled_byTousers", fields: [cancelled_by], references: [id], onUpdate: NoAction)
-  users_property_manager_applications_reviewed_byTousers  users?                     @relation("property_manager_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
-  users_property_manager_applications_user_idTousers      users                      @relation("property_manager_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
+  id                                                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                String                     @unique(map: "idx_unique_pending_application", where: raw("(status = 'pending'::manager_application_status)")) @db.Uuid
+  reason                                                 String
+  status                                                 manager_application_status @default(pending)
+  reviewed_by                                            String?                    @db.Uuid
+  reviewed_at                                            DateTime?                  @db.Timestamp(6)
+  created_at                                             DateTime                   @default(now()) @db.Timestamp(6)
+  users_property_manager_applications_reviewed_byTousers users?                     @relation("property_manager_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
+  users_property_manager_applications_user_idTousers     users                      @relation("property_manager_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
 
   @@index([status, created_at], map: "idx_manager_app_status_created")
   @@index([user_id, created_at(sort: Desc)], map: "idx_manager_app_user_created")

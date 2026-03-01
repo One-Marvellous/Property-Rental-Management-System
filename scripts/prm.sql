@@ -95,7 +95,7 @@ CREATE TABLE property_manager_applications (
   CHECK (
     (status = 'pending' AND reviewed_by IS NULL AND reviewed_at IS NULL)
     OR
-    (status IN ('approved','rejected') AND reviewed_by IS NOT NULL AND reviewed_at)
+    (status IN ('approved','rejected') AND reviewed_by IS NOT NULL AND reviewed_at IS NOT NULL)
   )
 );
 CREATE INDEX idx_manager_app_status_created ON property_manager_applications(status, created_at);
@@ -315,7 +315,7 @@ BEGIN
   JOIN rentals r ON r.id = i.rental_id
   WHERE i.id = NEW.invoice_id;
 
-  SELECT platform_fee_percent INTO v_percent FROM platform_settings;
+SELECT platform_fee_percent INTO v_percent FROM platform_settings WHERE id = TRUE LIMIT 1;
 
   INSERT INTO property_earnings(payment_id, property_id, rental_id, gross_amount, platform_fee, manager_earnings)
   VALUES(NEW.id, v_property, v_rental, NEW.amount, (NEW.amount*v_percent)/100, NEW.amount-((NEW.amount*v_percent)/100));
