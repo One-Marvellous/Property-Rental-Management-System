@@ -1,18 +1,16 @@
-# Property Rental Management System
+# 🏠 Property Rental Management System (PRMS)
 
-## Overview
+![Node.js](https://img.shields.io/badge/Node.js-v20+-green)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-Database-blue)
+![Prisma](https://img.shields.io/badge/ORM-Prisma-2D3748)
+![License](https://img.shields.io/badge/License-ISC-lightgrey)
+![API](https://img.shields.io/badge/API-REST-success)
+![Architecture](https://img.shields.io/badge/Architecture-Service--Layered-orange)
+![Status](https://img.shields.io/badge/Status-MVP--Production--Ready-success)
 
-The **Property Rental Management System** is a scalable backend
-application designed to manage the complete lifecycle of property
-rentals --- from property listing and booking requests to rental
-activation and structured payment tracking.
-
-It supports **multi-role access control** (Admin, Tenant, and Property
-Manager) with secure authentication, role switching, and an approval
-workflow for property manager applications. The system is built as a
-**production-ready MVP** with a normalized PostgreSQL schema, RESTful
-API architecture, and flexible pricing models suitable for apartments,
-hotels, and event spaces.
+A production-oriented backend platform for managing the lifecycle of
+property rentals --- listings, bookings, rentals, payments, and earnings
+distribution.
 
 ---
 
@@ -36,12 +34,9 @@ hotels, and event spaces.
 
 - Structured payment tracking per rental
 - Supports:
-  - Deposits
-  - Partial payments
-  - Recurring rent payments
-  - Late fees _(future-ready)_
-  - Refunds
-- Payment history for tenants, managers, and admins
+  - Full payments
+  - Installment payments
+- Payment history for users, managers, and admins
 
 ### 🧩 Scalable Architecture
 
@@ -52,20 +47,17 @@ hotels, and event spaces.
 
 ---
 
-## Tech Stack
-
-- **Runtime**: Node.js (ES Modules)
-- **Framework**: Express.js
-- **Database**: PostgreSQL
-- **ORM**: Prisma (configured)
-- **Code Formatting**: Prettier
-- **Environment Management**: dotenv
-
----
-
 ## System Lifecycle Flow
 
-    Property Listed → Booking Request → Manager Approval → Rental Created → Payments Tracked → Rental Completed/Terminated
+```mermaid
+graph LR
+  A[Property Listed] --> B[Booking Request]
+  B --> C[Manager Approval]
+  C --> D[Rental Created]
+  D --> E[Payment Schedule Created]
+  E --> F[Invoice Created]
+  F --> G[Payment]
+```
 
 ---
 
@@ -76,8 +68,7 @@ hotels, and event spaces.
 - Manage users and roles
 - Approve/reject property manager applications
 - Manage categories
-- View all bookings, rentals, and payments
-- Delete any property
+- Suspend any property
 
 ### Property Manager
 
@@ -85,7 +76,7 @@ hotels, and event spaces.
 - Approve/reject bookings for owned properties
 - View rentals and payments related to owned properties
 
-### Tenant
+### User
 
 - Register and authenticate
 - Browse properties
@@ -109,7 +100,9 @@ hotels, and event spaces.
 
    ```bash
    git clone https://github.com/One-Marvellous/Property-Rental-Management-System.git
+
    cd property-rental-management-system
+
    git checkout development
    ```
 
@@ -198,15 +191,21 @@ hotels, and event spaces.
    \i scripts/prm.sql
    ```
 
-   > **Alternative**: Let Prisma handle schema initialization. After setting `DATABASE_URL` in `.env`, Prisma will introspect and pull the schema (steps 5-6 below).
+5. **Configure environment variables**
+   - Copy the sample environment file:
+     ```bash
+     cp .env.sample .env
+     ```
+   - Update `.env` with your database connection and secrets:
 
-5. **Pull database schema into Prisma**
+     ```env
+     PORT=3000
+     DATABASE_URL=postgresql://postgres:password@localhost:5432/prm
+     NODE_ENV=development
+     ...
+     ```
 
-   Introspect the database to generate the Prisma schema:
-
-   ```bash
-   npx prisma db pull
-   ```
+     > **Note**: see `Integration Setup` for setup for Cloudinary and Stripe
 
 6. **Generate Prisma Client**
 
@@ -216,28 +215,13 @@ hotels, and event spaces.
    npx prisma generate
    ```
 
-7. **Configure environment variables**
-   - Copy the sample environment file:
-     ```bash
-     cp .env.sample .env
-     ```
-   - Update `.env` with your database connection:
+7. **Seed the database**
 
-     **For Local PostgreSQL:**
+   Populate the database with initial seed data (roles and default configurations):
 
-     ```env
-     PORT=3000
-     DATABASE_URL=postgresql://postgres:password@localhost:5432/prm
-     NODE_ENV=development
-     ```
-
-     **For Cloud PostgreSQL (Render or Neon):**
-
-     ```env
-     PORT=3000
-     DATABASE_URL=postgresql://user:password@host:port/database
-     NODE_ENV=development
-     ```
+   ```bash
+   npm run seed
+   ```
 
 8. **Run the application**
 
@@ -247,19 +231,122 @@ hotels, and event spaces.
 
    The server will start on `http://localhost:3000` (or the port specified in `.env`)
 
+## Integration Setup
+
+### Stripe Payment Integration
+
+This project uses Stripe for secure payment processing. To enable Stripe:
+
+1. **Create a Stripe account** at https://dashboard.stripe.com/register
+2. **Get your API keys** from the Stripe dashboard (Developers > API keys)
+3. Change the following variables in your `.env` file:
+
+   ```env
+   STRIPE_SECRET_KEY=sk_test_...
+   FRONTEND_URL=http://localhost:3000
+   ENDPOINT_SECRET=your_stripe_webhook_secret
+   ```
+
+4. The backend uses `STRIPE_SECRET_KEY` for server-side API calls and webhook verification.
+5. Webhook events are handled at `/webhook` (see routes for details).
+6. To test payments, use Stripe's test card numbers and the test mode.
+
+**Stripe config:**
+
+- See [src/config/stripe.js](src/config/stripe.js) for initialization
+- Payment flows are managed in the user service and controller
+
+### Cloudinary Image Integration
+
+Cloudinary is used for image uploads and management. To enable Cloudinary:
+
+1. **Create a Cloudinary account** at https://cloudinary.com/
+2. **Get your cloud name, API key, and API secret** from the Cloudinary dashboard
+3. Add the following to your `.env` file:
+
+   ```env
+   CLOUDINARY_CLOUD_NAME=your_cloud_name
+   CLOUDINARY_API_KEY=your_api_key
+   CLOUDINARY_API_SECRET=your_api_secret
+   ```
+
+4. The backend configures Cloudinary in production mode (see [src/utils/imageUploader](src/utils/imageUploader.js))
+5. Image uploads, deletions, and transformations are handled via Cloudinary APIs
+
+**Cloudinary config:**
+
+- See [src/utils/imageUploader](src/utils/imageUploader.js) for setup and usage
+- Ensure your environment variables are set before deploying
+
+---
+
+## API Documentation
+
+The API documentation is available through **Swagger UI** which provides interactive API exploration and testing.
+
+### Accessing the Documentation
+
+Once the server is running, visit:
+
+```
+http://localhost:3000/api/doc
+```
+
+> **Note**: This assumes your port is set to 3000 in `.env`
+
+The Swagger UI interface allows you to:
+
+- View all available endpoints with detailed descriptions
+- See request/response schemas
+- Test API endpoints directly from the browser
+- Review authentication requirements for protected endpoints
+- Understand pagination and filtering options
+
+# Importing API Documentation to Postman
+
+You can easily migrate and test the API endpoints in Postman by importing the OpenAPI/Swagger documentation:
+
+1. **Start the server**: Make sure your server is running locally `npm run dev`
+2. **Open Postman** and click on **Import**.
+3. Select the **Link** tab and enter:
+
+   ```
+   http://localhost:3000/api/doc-json
+   ```
+
+4. Click **Continue** and follow the prompts to import the API collection.
+
+> **Note:** The server **must be running** for Postman to access the documentation at this URL.
+
+### API Endpoints Overview
+
+- **Authentication**: `/api/v1/auth` - Register, login, and token refresh
+- **Admin**: `/api/v1/admin` - User management, category management, approvals
+- **Property Manager**: `/api/v1/manager` - Property and booking management
+- **User**: `/api/v1/user` - User profile and rental information
+- **Property**: `/api/v1/properties` - Browse properties related information
+- **Category**: `/api/v1/categories` - Browse, edit create delete category related information
+- **Health**: `/api/v1/health` - Server health check
+
 ## Database Schema
 
 The system uses the following main entities:
 
-- **users**: Core user accounts with authentication
-- **roles**: Role definitions (tenant, property_manager, admin)
-- **user_roles**: Role assignments with audit trail
-- **property_manager_applications**: Applications for becoming a property manager
-- **properties**: Property listings with pricing and status
+- **users**: Core user accounts responsible for authentication and platform access.
+- **roles**: Role definitions (user, manager, admin).
+- **user_roles**: Junction table managing many-to-many relationships between users and roles.
+- **property_manager_applications**: Handles applications submitted by users requesting property manager privileges.
+- **categories**: Defines classification groups for properties (e.g., Apartment, Event Hall, Short-let, Office Space).
+- **properties**: Represents property listings created by approved property managers.
 - **property_images**: Images associated with properties
-- **bookings**: Property booking requests
-- **rentals**: Active rental agreements
-- **payments**: Payment transactions and tracking
+- **bookings**: Represents booking requests made by users for a property
+- **rentals**: Represents confirmed rental agreements derived from approved bookings.
+- **payment_schedules**: Defines structured payment obligations for a rental.
+- **invoices**: Represents billing events generated for a rental.
+- **payments**: Represents actual financial transactions.
+- **property_earnings**: Represents property earnings ledger table.
+
+![System Flow](<assets/ER diagram.svg>)
 
 ## Development Workflow
 
@@ -277,15 +364,23 @@ To check if files need formatting without modifying them:
 npm run format:check
 ```
 
+### Code Quality
+
+Before committing your code, check for errors within your code:
+
+```bash
+npm run lint
+```
+
 ### Project Structure
 
 ```
-.
 ├── src/
 │   ├── server.js        # Main server entry point
 │   ├── config/          # Configuration files
 │   ├── controllers/     # Request handlers
 │   ├── routes/          # API route definitions
+│   ├── models/          # Type definitions
 │   ├── middlewares/     # Express middleware functions
 │   ├── services/        # Business logic and data access layer
 │   ├── validators/      # Input validation logic
@@ -294,25 +389,17 @@ npm run format:check
 │   └── schema.prisma    # Prisma ORM schema
 ├── scripts/
 │   └── prm.sql          # PostgreSQL database schema
-├── docs/                # Documentation
+├── docs/                # Contains Swagger Documentation for API
 ├── .env.sample          # Environment variables template
 ├── .env                 # Environment variables
 ├── .gitignore           # Git ignore rules
-├── .prettierrc           # Prettier configuration
-├── .prettierignore       # Prettier ignore rules
+├── .prettierrc          # Prettier configuration
+├── .prettierignore      # Prettier ignore rules
 ├── prisma.config.ts     # Prisma configuration
 ├── package.json         # Project dependencies and scripts
 ├── package-lock.json    # Dependency lock file
 └── README.md            # This file
 ```
-
-## Best Practices
-
-1. **Always install dependencies** with `npm i` before starting development
-2. **Set up your environment variables** by creating a `.env` file from `.env.sample`
-3. **Format your code** using `npm run format` before pushing changes
-4. **Never commit** the `.env` file (it's in `.gitignore`)
-5. **Use descriptive commit messages** and keep commits atomic
 
 ## Git Workflow
 
@@ -328,16 +415,6 @@ git commit -m "Description of changes"
 # Push to remote
 git push origin <branch-name>
 ```
-
-## Documentation
-
-Full API documentation and additional setup guides are available in:
-
-- `/docs` folder
-- Check [project documentation site](https://www.postman.com/one-marvellous/property-management-system) for detailed API endpoints
-- Database schema diagram is available in `scripts/prm.sql`
-
-For detailed information on the database structure, refer to the SQL schema file at `scripts/prm.sql`.
 
 ## Troubleshooting
 
@@ -362,8 +439,9 @@ For detailed information on the database structure, refer to the SQL schema file
 1. Create a feature branch from `development`
 2. Make your changes and test thoroughly
 3. Format your code with `npm run format`
-4. Commit with clear, descriptive messages
-5. Submit a pull request
+4. Check for any errors withing your code with `npm run lint`
+5. Commit with clear, descriptive messages
+6. Submit a pull request
 
 ## License
 
@@ -371,4 +449,23 @@ ISC
 
 ## Support
 
-For issues, questions, or contributions, please open an issue or contact the development team.
+For issues, questions, or contributions, please open an issue or contact the development team or [TS Academy](https://tsacademyonline.com)
+
+## Team
+
+**Lead Developer**
+
+- Marvellous Fawole — https://github.com/One-Marvellous
+
+**Contributors**
+
+- Damilola Adegbite — https://github.com/dax-side
+- John Oluwatobi — https://github.com/JOHNNY-OBA
+- Sunday Alabi — https://github.com/iamalabisunday
+- Eliot — https://github.com/kingx7-cyber
+- Olofintila Ayomide — https://github.com/olofus0204
+- Gideon Omeje — https://github.com/gidzystar57
+- Ibrahim Sulaimon — https://github.com/Sulai007
+- Aghorunse Boluwatife — https://github.com/Teefelove
+- Olofintila Ayomide — https://github.com/olofus0204
+- Emmanuel Testimony — https://github.com/Angel27lab
