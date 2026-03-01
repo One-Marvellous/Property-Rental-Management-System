@@ -15,6 +15,7 @@ import {
   applyForManagerValidator,
   createInvoiceValidator,
   sessionIdParamValidator,
+  getUserPaymentHistoryValidator,
 } from '../validators/user.validators.js';
 
 const router = Router();
@@ -22,7 +23,7 @@ const router = Router();
 router.post(
   '/switch-role',
   authenticateWithCustomErrors,
-  authorizeRoles(UserRole.USER, UserRole.MANAGER, UserRole.ADMIN),
+  authorizeRoles(UserRole.USER, UserRole.MANAGER),
   zodValidation(switchUserRoleValidator),
   userController.switchUserRole
 );
@@ -92,5 +93,11 @@ router.get(
 );
 
 router.get('/payment-cancelled', userController.paymentCancelled);
+
+router.get(
+  '/history/payments',
+  zodValidation(getUserPaymentHistoryValidator),
+  userController.getUserPaymentHistory
+);
 
 export default router;

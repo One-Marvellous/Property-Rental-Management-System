@@ -23,12 +23,13 @@ class UserController {
   async createBooking(req, res, next) {
     try {
       const userId = req.user.userId;
-      const { propertyId, duration } = req.body;
+      const { propertyId, duration, startDate } = req.body;
 
       const result = await userService.createBooking({
         userId,
         propertyId,
         duration,
+        startDate,
       });
 
       res
@@ -256,9 +257,37 @@ class UserController {
   /**
    * Serve payment cancelled page (static or simple response)
    */
-  async paymentCancelled(req, res, next) {
+  async paymentCancelled(_, res, next) {
     try {
       res.status(200).send('Payment was cancelled. You can try again.');
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  async getUserPaymentHistory(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const { page, limit, from, to, order } = req.query;
+
+      const result = await userService.getUserPaymentHistory({
+        userId,
+        page,
+        limit,
+        from,
+        to,
+        order,
+      });
+
+      res
+        .status(200)
+        .json(
+          new ApiResponse(
+            true,
+            'User payment history fetched successfully',
+            result
+          )
+        );
     } catch (error) {
       next(error);
     }

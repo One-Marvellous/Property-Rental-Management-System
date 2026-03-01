@@ -31,8 +31,9 @@ class AdminController {
   async suspendUser(req, res) {
     try {
       const userId = req.params.id;
+      const adminId = req.user.userId;
 
-      await adminService.suspendUser(userId);
+      await adminService.suspendUser({ userId, adminId });
       res
         .status(200)
         .json(new ApiResponse(true, 'User suspended successfully'));
@@ -44,70 +45,6 @@ class AdminController {
       } else {
         console.error('Error suspending user:', error);
         res.status(500).json(new ApiResponse(false, 'Failed to suspend user'));
-      }
-    }
-  }
-
-  async createCategory(req, res) {
-    try {
-      const { name, description } = req.body;
-      const result = await adminService.createCategory({ name, description });
-      res
-        .status(201)
-        .json(new ApiResponse(true, 'Category created successfully', result));
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error creating category:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to create category'));
-      }
-    }
-  }
-
-  async editCategory(req, res) {
-    try {
-      const categoryId = req.params.id;
-      const { description } = req.body;
-      const result = await adminService.editCategory(categoryId, description);
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Category updated successfully', result));
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error updating category:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to update category'));
-      }
-    }
-  }
-
-  async deleteCategory(req, res) {
-    try {
-      const categoryId = req.params.id;
-      await adminService.deleteCategory(categoryId);
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Category deleted successfully'));
-    } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error deleting category:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to delete category'));
       }
     }
   }
@@ -178,7 +115,11 @@ class AdminController {
     try {
       const applicationId = req.params.id;
       const reviewerId = req.user.userId;
-      await adminService.approveManagerApplication(applicationId, reviewerId);
+
+      await adminService.approveManagerApplication({
+        applicationId,
+        reviewerId,
+      });
       res
         .status(200)
         .json(
@@ -204,7 +145,10 @@ class AdminController {
     try {
       const applicationId = req.params.id;
       const reviewerId = req.user.userId;
-      await adminService.rejectManagerApplication(applicationId, reviewerId);
+      await adminService.rejectManagerApplication({
+        applicationId,
+        reviewerId,
+      });
       res
         .status(200)
         .json(
@@ -287,8 +231,14 @@ class AdminController {
   async rejectPropertySubmission(req, res) {
     try {
       const propertyId = req.params.id;
+      const reviewerId = req.user.userId;
       const { rejectionReason } = req.body;
-      await adminService.rejectPropertySubmission(propertyId, rejectionReason);
+
+      await adminService.rejectPropertySubmission({
+        propertyId,
+        reviewerId,
+        rejectionReason,
+      });
       res
         .status(200)
         .json(
@@ -311,7 +261,9 @@ class AdminController {
   async suspendProperty(req, res) {
     try {
       const propertyId = req.params.id;
-      await adminService.suspendProperty(propertyId);
+      const reviewerId = req.user.userId;
+
+      await adminService.suspendProperty({ propertyId, reviewerId });
       res
         .status(200)
         .json(new ApiResponse(true, 'Property suspended successfully'));
@@ -326,6 +278,17 @@ class AdminController {
           .status(500)
           .json(new ApiResponse(false, 'Failed to suspend property'));
       }
+    }
+  }
+
+  async getIncomePerProperty(_, res, next) {
+    try {
+      const result = await adminService.getIncomePerProperty();
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Earning Retrieved successfully', result));
+    } catch (error) {
+      next(error);
     }
   }
 }

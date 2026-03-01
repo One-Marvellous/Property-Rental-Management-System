@@ -7,6 +7,7 @@ import { ENV } from '../config/env.js';
 import {
   property_approval_status,
   manager_application_status,
+  user_status,
 } from '../generated/prisma/index.js';
 
 /**
@@ -21,7 +22,7 @@ class AdminService {
    * @param {number} [filters.limit=ENV.LIMIT] - Items per page
    * @param {string} [filters.from] - ISO start date to filter created_at
    * @param {string} [filters.to] - ISO end date to filter created_at
-   * @param {string} [filters.order='desc'] - Sort order for created_at
+   * @param {'desc'|'asc'} [filters.order='desc'] - Sort order for created_at
    * @returns {Promise<object>} Paginated response with users data
    * @throws {ApiError} If database query fails
    */
@@ -52,7 +53,7 @@ class AdminService {
     const users = await prisma.users.findMany({
       where,
       orderBy: { created_at: order },
-      omit: { password_hash: true, is_suspended: true },
+      omit: { password_hash: true },
       skip,
       take,
     });
@@ -71,101 +72,34 @@ class AdminService {
   /**
    * Suspends an active user account
    * @param {string} userId - The ID of the user to suspend
+   * @param {string} adminId - The ID of the admin performing the suspension
    * @throws {ApiError} If user not found (404) or already suspended
    */
-  async suspendUser(userId) {
+  async suspendUser({ userId, adminId }) {
     // Verify user exists
     const user = await prisma.users.findUnique({
       where: { id: userId },
     });
 
+    // check if user exists
     if (!user) {
       throw new ApiError(404, 'User not found');
     }
 
+    // check if user is the admin themselves (optional, depending on business rules)
+    if (user.id === adminId) {
+      throw new ApiError(400, 'Admins cannot suspend their own account');
+    }
+
     // Check if user is already suspended
-    if (user.is_suspended) {
+    if (user.status === user_status.suspended) {
       throw new ApiError(409, 'User is already suspended');
     }
 
     // Update user suspension status
     await prisma.users.update({
       where: { id: userId },
-      data: { is_suspended: true },
-    });
-  }
-
-  /**
-   * Creates a new property category
-   * @param {object} categoryData - Category information
-   * @param {string} categoryData.name - Category name (must be unique)
-   * @param {string} categoryData.description - Category description
-   * @returns {Promise<object>} The created category object
-   * @throws {ApiError} If category name already exists (409)
-   */
-  async createCategory(categoryData) {
-    const { name, description } = categoryData;
-
-    // Verify category name uniqueness
-    const existingCategory = await prisma.categories.findUnique({
-      where: { name },
-    });
-    if (existingCategory) {
-      throw new ApiError(409, 'Category with this name already exists');
-    }
-
-    // Insert new category into database
-    const newCategory = await prisma.categories.create({
-      data: {
-        name,
-        description,
-      },
-    });
-
-    return newCategory;
-  }
-
-  /**
-   * Updates an existing category description
-   * @param {string} categoryId - The ID of the category to update
-   * @param {string} description - New description for the category
-   * @returns {Promise<object>} The updated category object
-   * @throws {ApiError} If category not found (404)
-   */
-  async editCategory(categoryId, description) {
-    // Update category description in database
-    const updatedCategory = await prisma.categories.update({
-      where: { id: categoryId },
-      data: {
-        description,
-      },
-    });
-
-    if (!updatedCategory) {
-      throw new ApiError(404, 'Category not found');
-    }
-
-    return updatedCategory;
-  }
-
-  /**
-   * Deletes a property category
-   * @param {string} categoryId - The ID of the category to delete
-   * @throws {ApiError} If category not found (404)
-   */
-  async deleteCategory(categoryId) {
-    // Verify category exists before deletion
-    const category = await prisma.categories.findUnique({
-      where: { id: categoryId },
-    });
-
-    if (!category) {
-      throw new ApiError(404, 'Category not found');
-    }
-
-    // Remove category from database
-    await prisma.categories.delete({
-      where: { id: categoryId },
+      data: { user_status: user_status.suspended },
     });
   }
 
@@ -177,7 +111,7 @@ class AdminService {
    * @param {string} [filters.from] - ISO start date to filter created_at
    * @param {string} [filters.to] - ISO end date to filter created_at
    * @param {string} [filters.order='desc'] - Sort order for created_at
-   * @param {string} filters.status - Application status to filter by (optional) typed as manager_application_status enum
+   * @param {'pending'|'approved'|'rejected'|'cancelled'} filters.status - Application status to filter by (optional)
    * @returns {Promise<object>} Paginated response with applications
    */
   async getManagerApplications(filters) {
@@ -240,7 +174,7 @@ class AdminService {
       where: { id: applicationId },
       include: {
         users_property_manager_applications_user_idTousers: {
-          omit: { password_hash: true, is_suspended: true, created_at: true },
+          omit: { password_hash: true, created_at: true, deleted_at: true },
         },
       },
     });
@@ -269,7 +203,7 @@ class AdminService {
    * @param {string} reviewerId - The ID of the admin reviewing the application
    * @throws {ApiError} If application not found (404), already reviewed (400), or manager role not found (500)
    */
-  async approveManagerApplication(applicationId, reviewerId) {
+  async approveManagerApplication({ applicationId, reviewerId }) {
     // Verify application exists
     const application = await prisma.property_manager_applications.findUnique({
       where: { id: applicationId },
@@ -280,7 +214,10 @@ class AdminService {
 
     // Ensure application is in pending status
     if (application.status !== manager_application_status.pending) {
-      throw new ApiError(400, 'Only pending applications can be approved');
+      throw new ApiError(
+        400,
+        `Only pending applications can be approved, application is currently ${application.status}`
+      );
     }
 
     // Execute approval and role assignment in a single transaction
@@ -317,7 +254,7 @@ class AdminService {
    * @param {string} reviewerId - The ID of the admin reviewing the application
    * @throws {ApiError} If application not found (404) or already reviewed (400)
    */
-  async rejectManagerApplication(applicationId, reviewerId) {
+  async rejectManagerApplication({ applicationId, reviewerId }) {
     // Verify application exists
     const application = await prisma.property_manager_applications.findUnique({
       where: { id: applicationId },
@@ -329,7 +266,10 @@ class AdminService {
 
     // Ensure application is in pending status
     if (application.status !== manager_application_status.pending) {
-      throw new ApiError(400, 'Only pending applications can be rejected');
+      throw new ApiError(
+        400,
+        `Only pending applications can be rejected, application is currently ${application.status}`
+      );
     }
 
     // Update application status to rejected
@@ -350,7 +290,7 @@ class AdminService {
    * @param {number} [filters.limit=ENV.LIMIT] - Items per page
    * @param {string} [filters.from] - ISO start date to filter created_at
    * @param {string} [filters.to] - ISO end date to filter created_at
-   * @param {string} [filters.order='desc'] - Sort order for created_at
+   * @param {'asc'|'desc'} [filters.order='desc'] - Sort order for created_at
    * @returns {Promise<object>} Paginated response with pending property submissions
    */
   async getPropertySubmissions(filters) {
@@ -382,6 +322,15 @@ class AdminService {
     // Fetch property submissions sorted by newest first
     const submissions = await prisma.properties.findMany({
       where,
+      omit: {
+        approved_by: true,
+        approved_at: true,
+        rejected_by: true,
+        rejected_at: true,
+        suspended_by: true,
+        suspended_at: true,
+        deleted_at: true,
+      },
       orderBy: { created_at: order },
       skip,
       take,
@@ -415,7 +364,10 @@ class AdminService {
 
     // Ensure property is in pending approval status
     if (property.approval_status !== property_approval_status.pending) {
-      throw new ApiError(400, 'Only pending properties can be approved');
+      throw new ApiError(
+        400,
+        `Only pending properties can be approved, property is currently ${property.approval_status}`
+      );
     }
 
     // Update property approval status
@@ -432,10 +384,11 @@ class AdminService {
   /**
    * Rejects a pending property submission with reason
    * @param {string} propertyId - The ID of the property to reject
+   * @param {string} reviewerId - The ID of the admin rejecting the property
    * @param {string} rejectionReason - The reason for rejecting the property
    * @throws {ApiError} If property not found (404) or not in pending status (400)
    */
-  async rejectPropertySubmission(propertyId, rejectionReason) {
+  async rejectPropertySubmission({ propertyId, reviewerId, rejectionReason }) {
     // Verify property exists
     const property = await prisma.properties.findUnique({
       where: { id: propertyId },
@@ -446,7 +399,10 @@ class AdminService {
 
     // Ensure property is in pending approval status
     if (property.approval_status !== property_approval_status.pending) {
-      throw new ApiError(400, 'Only pending properties can be rejected');
+      throw new ApiError(
+        400,
+        `Only pending properties can be rejected, property is currently ${property.approval_status}`
+      );
     }
 
     // Update property status and store rejection reason
@@ -455,6 +411,8 @@ class AdminService {
       data: {
         approval_status: property_approval_status.rejected,
         rejection_reason: rejectionReason,
+        rejected_at: new Date(),
+        rejected_by: reviewerId,
       },
     });
   }
@@ -462,9 +420,10 @@ class AdminService {
   /**
    * Suspends an approved property from public listing
    * @param {string} propertyId - The ID of the property to suspend
+   * @param {string} reviewerId - The ID of the admin suspending the property
    * @throws {ApiError} If property not found (404) or not in approved status (400)
    */
-  async suspendProperty(propertyId) {
+  async suspendProperty({ propertyId, reviewerId }) {
     // Verify property exists
     const property = await prisma.properties.findUnique({
       where: { id: propertyId },
@@ -475,7 +434,10 @@ class AdminService {
 
     // Ensure property is approved before suspension
     if (property.approval_status !== property_approval_status.approved) {
-      throw new ApiError(400, 'Only approved properties can be suspended');
+      throw new ApiError(
+        400,
+        `Only approved properties can be suspended, property is currently ${property.approval_status}`
+      );
     }
 
     // Update property status to suspended
@@ -483,8 +445,42 @@ class AdminService {
       where: { id: propertyId },
       data: {
         approval_status: property_approval_status.suspended,
+        suspended_at: new Date(),
+        suspended_by: reviewerId,
       },
     });
+  }
+
+  /**
+   * Retrieves total platform fee earned per property
+   * @returns {Promise<Array>} Array of objects containing property_id, title, manager_id, and total_platform_fee
+   */
+  async getIncomePerProperty() {
+    // Aggregate total platform fee earned per property from property_earnings table
+    const adminIncomePerProperty = await prisma.property_earnings.groupBy({
+      by: ['property_id'],
+      _sum: {
+        platform_fee: true,
+      },
+    });
+
+    // For each property, fetch the title and manager_id to include in the response
+    const adminResult = await Promise.all(
+      adminIncomePerProperty.map(async (item) => {
+        const property = await prisma.properties.findUnique({
+          where: { id: item.property_id },
+          select: { title: true, manager_id: true },
+        });
+        return {
+          property_id: item.property_id,
+          property_title: property?.title,
+          manager_id: property?.manager_id,
+          total_platform_fee: item._sum.platform_fee,
+        };
+      })
+    );
+
+    return adminResult;
   }
 }
 

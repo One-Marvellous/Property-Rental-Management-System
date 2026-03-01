@@ -11,6 +11,7 @@ import healthDoc from '../../docs/health.swagger.js';
 import propertyDoc from '../../docs/property.swagger.js';
 import userDoc from '../../docs/user.swagger.js';
 import managerDoc from '../../docs/propertyManager.swagger.js';
+import categoryDoc from '../../docs/category.swagger.js';
 
 const swaggerOptions = {
   definition: {
@@ -18,7 +19,7 @@ const swaggerOptions = {
     info: {
       title: 'Property Rental Management System API',
       description:
-        'Scalable backend for managing property rentals with role-based access, authentication, and booking workflows.',
+        'Scalable backend for managing property rentals with role-based access, authentication, booking and payment workflows.',
       version: '1.0.0',
       contact: {
         name: 'TS Academy Group 9',
@@ -405,6 +406,26 @@ const swaggerOptions = {
           },
         },
 
+        Payment: {
+          type: 'object',
+          properties: {
+            payment_id: { type: 'string', example: 'pay_123abc' },
+            amount: { type: 'number', example: 1500.0 },
+            paid_at: {
+              type: 'string',
+              format: 'date-time',
+              example: '2024-01-01T12:00:00Z',
+            },
+            property_id: { type: 'string', example: 'prop_456def' },
+            property_title: {
+              type: 'string',
+              example: 'Cozy Apartment in Downtown',
+            },
+            city: { type: 'string', example: 'New York' },
+            state: { type: 'string', example: 'NY' },
+          },
+        },
+
         /** ---------------- PAGINATION ---------------- */
         PaginationMeta: {
           type: 'object',
@@ -490,6 +511,21 @@ const swaggerOptions = {
             },
           ],
         },
+
+        PaginatedPayments: {
+          allOf: [
+            { $ref: '#/components/schemas/PaginatedResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'array',
+                  items: { $ref: '#/components/schemas/Payment' },
+                },
+              },
+            },
+          ],
+        },
       },
     },
 
@@ -500,9 +536,9 @@ const swaggerOptions = {
       { name: 'User', description: 'User operations' },
       { name: 'Property', description: 'Property endpoints' },
       { name: 'Health', description: 'Health check' },
+      { name: 'Category', description: 'Category endpoints' },
     ],
   },
-  // paths will be merged from dedicated docs modules below
 };
 
 // Merge paths from individual doc modules into the final OpenAPI spec
@@ -513,6 +549,7 @@ const mergedPaths = {
   ...(propertyDoc && propertyDoc.paths ? propertyDoc.paths : {}),
   ...(userDoc && userDoc.paths ? userDoc.paths : {}),
   ...(managerDoc && managerDoc.paths ? managerDoc.paths : {}),
+  ...(categoryDoc && categoryDoc.paths ? categoryDoc.paths : {}),
 };
 
 export const specs = {

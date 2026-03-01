@@ -21,15 +21,15 @@ class PropertyManagerService {
   /**
    * Add a new property under a manager's account.
    * @param {Object} data - property attributes and manager id
-   * @param {number} data.userId - manager user id
+   * @param {string} data.userId - manager user id
    * @param {string} data.title - property title
    * @param {string} data.description - property description
    * @param {string} data.address - property address
    * @param {string} data.city - city name
    * @param {string} data.state - state name
-   * @param {string} data.pricingUnit - pricing unit (e.g., per night)
+   * @param {'month'|'night'|'day'|'event'} data.pricingUnit - pricing unit (e.g., per night)
    * @param {number} data.basePrice - base price of the property
-   * @param {number} data.categoryId - category identifier
+   * @param {string} data.categoryId - category identifier
    * @returns {Promise<Object>} the created property record
    */
   async addProperty(data) {
@@ -60,9 +60,13 @@ class PropertyManagerService {
       },
       omit: {
         approved_at: true,
+        rejected_at: true,
+        suspended_at: true,
+        deleted_at: true,
         approved_by: true,
+        rejected_by: true,
+        suspended_by: true,
         rejection_reason: true,
-        approval_status: true,
       },
     });
 
@@ -73,8 +77,8 @@ class PropertyManagerService {
    * Submit a property for admin approval by changing its status to pending.
    * Ensures that the property belongs to the requesting manager.
    * @param {Object} data
-   * @param {number} data.userId - manager id
-   * @param {number} data.propertyId - id of the property to publish
+   * @param {string} data.userId - manager id
+   * @param {string} data.propertyId - id of the property to publish
    * @returns {Promise<Object>} updated property record
    */
   async publishProperty(data) {
@@ -111,10 +115,15 @@ class PropertyManagerService {
         approval_status: property_approval_status.pending,
       },
       omit: {
-        approved_at: true,
-        approved_by: true,
-        rejection_reason: true,
         approval_status: true,
+        approved_by: true,
+        approved_at: true,
+        suspended_by: true,
+        suspended_at: true,
+        rejected_at: true,
+        rejected_by: true,
+        deleted_at: true,
+        rejection_reason: true,
       },
     });
 
@@ -124,16 +133,16 @@ class PropertyManagerService {
   /**
    * Update an existing property's details.
    * @param {Object} data
-   * @param {number} data.userId - manager id
-   * @param {number} data.propertyId - property to update
+   * @param {string} data.userId - manager id
+   * @param {string} data.propertyId - property to update
    * @param {string} data.title
    * @param {string} data.description
    * @param {string} data.address
    * @param {string} data.city
    * @param {string} data.state
-   * @param {string} data.pricingUnit
+   * @param {'month'|'night'|'day'|'event'} data.pricingUnit
    * @param {number} data.basePrice
-   * @param {number} data.categoryId
+   * @param {string} data.categoryId
    * @returns {Promise<Object>} the updated property
    */
   async editProperty(data) {
@@ -190,10 +199,15 @@ class PropertyManagerService {
       },
       data: toUpdate,
       omit: {
-        approved_at: true,
-        approved_by: true,
-        rejection_reason: true,
         approval_status: true,
+        approved_by: true,
+        approved_at: true,
+        suspended_by: true,
+        suspended_at: true,
+        rejected_at: true,
+        rejected_by: true,
+        deleted_at: true,
+        rejection_reason: true,
       },
     });
 
@@ -472,7 +486,7 @@ class PropertyManagerService {
       },
     });
 
-    const total = await prisma.properties.count({
+    const total = await prisma.bookings.count({
       where: { properties: { manager_id: userId }, ...where },
     });
 
@@ -651,6 +665,48 @@ class PropertyManagerService {
         status: booking_status.rejected,
       },
     });
+  }
+
+  /**
+   * Calculate total manager earnings and gross amount per property for a given manager.
+   * @param {number} managerId - ID of the manager to calculate earnings for
+   * @returns {Promise<Array>} Array of objects containing property_id, property_title, city, state, total_manager_earnings, and total_gross
+   */
+  async getIncome(managerId) {
+    // Aggregate total manager earnings and gross amount per property for the given manager
+    const managerIncome = await prisma.property_earnings.groupBy({
+      by: ['property_id'],
+      where: {
+        property: {
+          manager_id: managerId, // filter earnings only for this manager
+        },
+      },
+      _sum: {
+        manager_earnings: true,
+        gross_amount: true,
+      },
+    });
+
+    // For each property, fetch the title, city, and state to include in the response
+    const result = await Promise.all(
+      managerIncome.map(async (item) => {
+        const property = await prisma.properties.findUnique({
+          where: { id: item.property_id },
+          select: { title: true, city: true, state: true },
+        });
+        // Return combined result with property details and earnings
+        return {
+          property_id: item.property_id,
+          property_title: property?.title,
+          city: property?.city,
+          state: property?.state,
+          total_manager_earnings: item._sum.manager_earnings,
+          total_gross: item._sum.gross_amount,
+        };
+      })
+    );
+
+    return result;
   }
 }
 

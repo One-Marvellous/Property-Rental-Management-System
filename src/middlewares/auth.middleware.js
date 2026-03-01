@@ -32,7 +32,7 @@ export const authenticateWithCustomErrors = async (req, res, next) => {
     }
 
     if (error instanceof InvalidTokenError) {
-      return res.status(401).json(ApiResponse(false, 'Invalid Token'));
+      return res.status(401).json(new ApiResponse(false, 'Invalid Token'));
     }
 
     next(error);

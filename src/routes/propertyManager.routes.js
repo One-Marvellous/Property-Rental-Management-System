@@ -78,7 +78,6 @@ router.patch(
   managerController.rejectBooking
 );
 
-// Upload up to 5 images for a property (field name: 'images')
 router.post(
   '/properties/:id/images',
   uploadMultipleImages,
@@ -86,11 +85,12 @@ router.post(
   managerController.uploadPropertyImages
 );
 
-// Delete a property image by id
 router.delete(
   '/properties/:id/images/:imageId',
   zodValidation(deleteImageValidator),
   managerController.deletePropertyImage
 );
+
+router.get('/income', managerController.getIncome);
 
 export default router;

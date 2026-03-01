@@ -21,7 +21,7 @@ class PropertyService {
    * @param {number} [filters.limit=ENV.LIMIT] - Items per page
    * @param {string} [filters.from] - ISO start date to filter created_at
    * @param {string} [filters.to] - ISO end date to filter created_at
-   * @param {string} [filters.order='desc'] - Sort order for created_at
+   * @param {'asc'|'desc'} [filters.order='desc'] - Sort order for created_at
    * @returns {Promise<object>} Paginated response containing properties
    * @throws {ApiError} when database query fails
    */

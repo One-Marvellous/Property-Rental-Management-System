@@ -610,5 +610,56 @@ export default {
         },
       },
     },
+
+    '/api/v1/manager/income': {
+      get: {
+        summary: 'Get income details',
+        description: 'Retrieve income details for a property you manage.',
+        tags: ['Property Manager'],
+        security: [{ BearerAuth: [] }],
+        responses: {
+          200: {
+            description: 'Income details retrieved successfully',
+            content: {
+              'application/json': {
+                schema: {
+                  allOf: [
+                    { $ref: '#/components/schemas/ApiResponse' },
+                    {
+                      type: 'object',
+                      properties: {
+                        data: {
+                          type: 'array',
+                          items: {
+                            type: 'object',
+                            properties: {
+                              property_id: {
+                                type: 'string',
+                                example: 'prop_1234567890',
+                              },
+                              property_title: {
+                                type: 'string',
+                                example: 'Luxury Beachfront Villa',
+                              },
+                              city: { type: 'string', example: 'Miami' },
+                              state: { type: 'string', example: 'FL' },
+                              total_manager_earnings: {
+                                type: 'number',
+                                example: 5000,
+                              },
+                              total_gross: { type: 'number', example: 10000 },
+                            },
+                          },
+                        },
+                      },
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      },
+    },
   },
 };

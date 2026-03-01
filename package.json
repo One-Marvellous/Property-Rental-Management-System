@@ -23,7 +23,7 @@
   "dependencies": {
     "@dax-side/jwt-abstraction": "^0.2.5",
     "@prisma/adapter-pg": "^7.3.0",
-    "@prisma/client": "^7.4.1",
+    "@prisma/client": "^7.4.2",
     "bcrypt": "^6.0.0",
     "cloudinary": "^2.9.0",
     "cors": "^2.8.6",
@@ -47,6 +47,6 @@
     "eslint": "^10.0.0",
     "globals": "^17.3.0",
     "prettier": "^3.8.1",
-    "prisma": "^7.4.1"
+    "prisma": "^7.4.2"
   }
 }

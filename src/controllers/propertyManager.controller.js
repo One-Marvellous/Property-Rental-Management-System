@@ -239,6 +239,20 @@ class PropertyManagerController {
       next(error);
     }
   }
+
+  async getIncome(req, res, next) {
+    try {
+      const userId = req.user.userId;
+
+      const result = await managerService.getIncome(userId);
+
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Earnings retrieved successfully', result));
+    } catch (error) {
+      next(error);
+    }
+  }
 }
 
 export default new PropertyManagerController();
