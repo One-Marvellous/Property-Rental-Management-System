@@ -11,9 +11,7 @@ import {
   manager_application_status,
   property_availability_status,
   booking_status,
-  schedule_status,
   rental_status,
-  invoice_status,
   payment_status,
 } from '../generated/prisma/index.js';
 import { PaymentMode } from '../models/paymentMode.js';
@@ -455,7 +453,7 @@ class UserService {
     const schedule = await prisma.payment_schedules.findFirst({
       where: {
         rental_id: rentalId,
-        status: schedule_status.pending,
+        status: 'pending',
       },
       orderBy: { due_date: 'asc' },
     });
@@ -491,7 +489,7 @@ class UserService {
     const schedules = await prisma.payment_schedules.findMany({
       where: {
         rental_id: rentalId,
-        status: schedule_status.pending,
+        status: 'pending',
       },
     });
 
@@ -536,7 +534,7 @@ class UserService {
     // check for existing invoice for the rental
 
     const existingInvoice = await prisma.invoices.findFirst({
-      where: { rental_id: rentalId, status: invoice_status.pending },
+      where: { rental_id: rentalId, status: 'pending' },
     });
 
     if (existingInvoice) {
@@ -574,7 +572,7 @@ class UserService {
     const invoice = await prisma.invoices.findFirst({
       where: {
         id: invoiceId,
-        status: invoice_status.pending,
+        status: 'pending',
         rentals: {
           user_id: userId,
         },
