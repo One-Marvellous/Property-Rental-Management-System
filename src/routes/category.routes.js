@@ -16,12 +16,13 @@ const router = Router();
 
 // Protect all category routes with authentication
 router.use(authenticateWithCustomErrors);
+
 router.get(
   '/',
   authorizeRoles(UserRole.ADMIN, UserRole.MANAGER, UserRole.USER),
-  zodValidation(createCategoryValidator),
-  categoryController.createCategory
+  categoryController.getAllCategory
 );
+
 router.post(
   '/',
   authorizeRoles(UserRole.ADMIN),
