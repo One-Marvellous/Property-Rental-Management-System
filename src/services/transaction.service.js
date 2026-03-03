@@ -1,8 +1,6 @@
 import { prisma } from '../config/db.js';
 import {
-  schedule_status,
   rental_status,
-  invoice_status,
   payment_status,
 } from '../generated/prisma/index.js';
 
@@ -34,7 +32,7 @@ class TransactionService {
       await tx.invoices.update({
         where: { id: invoiceId },
         data: {
-          status: invoice_status.paid,
+          status: 'paid',
           paid_at: new Date(),
           stripe_payment_intent_id: paymentIntentId,
         },
@@ -47,7 +45,7 @@ class TransactionService {
       for (const item of invoiceSchedules) {
         await tx.payment_schedules.update({
           where: { id: item.schedule_id },
-          data: { status: schedule_status.paid },
+          data: { status: 'paid' },
         });
       }
 
