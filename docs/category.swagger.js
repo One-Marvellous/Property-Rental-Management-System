@@ -6,28 +6,6 @@ export default {
         description: 'Get all categories ever created',
         tags: ['Admin', 'User', 'Property Manager', 'Category'],
         security: [{ BearerAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['name', 'description'],
-                properties: {
-                  name: { type: 'string', example: 'Apartment' },
-                  description: {
-                    type: 'string',
-                    example: 'Modern apartment listings',
-                  },
-                  displayOrder: {
-                    type: 'integer',
-                    example: 0,
-                  },
-                },
-              },
-            },
-          },
-        },
         responses: {
           200: {
             description: 'Category fetched successfully',
