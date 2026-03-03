@@ -4,11 +4,6 @@ import ApiError from '../utils/apiError.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { UserRole } from '../models/roles.js';
 import { ENV } from '../config/env.js';
-import {
-  property_approval_status,
-  manager_application_status,
-  user_status,
-} from '../generated/prisma/index.js';
 
 /**
  * AdminService class handles all admin-related operations
@@ -92,14 +87,14 @@ class AdminService {
     }
 
     // Check if user is already suspended
-    if (user.status === user_status.suspended) {
+    if (user.is_suspended === true) {
       throw new ApiError(409, 'User is already suspended');
     }
 
     // Update user suspension status
     await prisma.users.update({
       where: { id: userId },
-      data: { user_status: user_status.suspended },
+      data: { is_suspended: true },
     });
   }
 
