@@ -2,12 +2,12 @@ export default {
   paths: {
     '/api/v1/health': {
       get: {
-        summary: 'Health check',
-        description: 'Check if the API server is running and responsive',
+        summary: 'Server health',
+        description: 'Confirms the server is up. No auth needed.',
         tags: ['Health'],
         responses: {
           200: {
-            description: 'Server is healthy and running',
+            description: 'Server is up and responding.',
             content: {
               'application/json': {
                 schema: {
