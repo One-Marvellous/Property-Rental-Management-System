@@ -1,9 +1,9 @@
 import authService from '../services/auth.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
-import ApiError from '../utils/apiError.js';
+import { SuccessMessages } from '../shared/messages/index.js';
 
 class AuthController {
-  async register(req, res) {
+  async register(req, res, next) {
     try {
       const { email, password, firstName, lastName, phoneNumber } = req.body;
 
@@ -15,57 +15,36 @@ class AuthController {
         phoneNumber,
       });
 
-      res
-        .status(201)
-        .json(new ApiResponse(true, 'User registered successfully', result));
+      const { statusCode, message } = SuccessMessages.AUTH.REGISTER;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      }
-      console.error('Registration error:', error);
-      res.status(500).json(new ApiResponse(false, 'Registration failed'));
+      next(error);
     }
   }
 
-  async login(req, res) {
+  async login(req, res, next) {
     try {
       const { email, password } = req.body;
 
       const result = await authService.loginUser(email, password);
 
-      res.status(200).json(new ApiResponse(true, 'Login successful', result));
+      const { statusCode, message } = SuccessMessages.AUTH.LOGIN;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      }
-      console.error('Login error:', error);
-      res.status(500).json(new ApiResponse(false, 'Login failed'));
+      next(error);
     }
   }
 
-  async refresh(req, res) {
+  async refresh(req, res, next) {
     try {
       const { refreshToken } = req.body;
 
       const result = await authService.refreshTokens(refreshToken);
 
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Token refreshed successfully', result));
+      const { statusCode, message } = SuccessMessages.AUTH.REFRESH_TOKEN;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      }
-      console.error('Token refresh error:', error);
-      res
-        .status(401)
-        .json(new ApiResponse(false, 'Invalid or expired refresh token'));
+      next(error);
     }
   }
 }
