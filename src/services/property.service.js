@@ -1,5 +1,5 @@
 import { prisma } from '../config/db.js';
-import ApiError from '../utils/apiError.js';
+import { NotFoundError } from '../shared/errors/index.js';
 import { ENV } from '../config/env.js';
 import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
 import { OrderStatus } from '../models/order.js';
@@ -83,16 +83,16 @@ class PropertyService {
     const property = await prisma.properties.findUnique({
       where: { id: propertyId },
       include: {
-        users: {
+        users_properties_manager_idTousers: {
           omit: { created_at: true, password_hash: true, is_suspended: true },
         },
       },
     });
 
-    if (!property) throw new ApiError(404, 'Property not found');
+    if (!property) throw new NotFoundError('Property');
 
     return {
-      manager: property.users,
+      manager: property.users_properties_manager_idTousers,
       property: {
         id: property.id,
         created_at: property.created_at,

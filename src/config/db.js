@@ -1,27 +1,29 @@
 import 'dotenv/config';
 import { PrismaPg } from '@prisma/adapter-pg';
 import { PrismaClient } from '../generated/prisma/client.js';
-import { ENV } from './env.js';
+import logger from './logger.js';
 
 const connectionString = `${process.env.DATABASE_URL}`;
 
 const adapter = new PrismaPg({ connectionString });
 const prisma = new PrismaClient({
   adapter,
-  log: ENV.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
+  log: [],
 });
 
 const connectDB = async () => {
   try {
     await prisma.$connect();
-    console.log('DB connected via Prisma');
+    logger.info('Database connected successfully', { database: 'PostgreSQL' });
   } catch (error) {
-    console.log(`Database connection error: ${error.message}`);
+    logger.error('Database connection failed', { error: error.message });
     process.exit(1);
   }
 };
+
 const disconnectDB = async () => {
   await prisma.$disconnect();
+  logger.info('Database disconnected');
 };
 
 export { prisma, connectDB, disconnectDB };

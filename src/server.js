@@ -1,17 +1,19 @@
 import express from 'express';
 import path from 'path';
+import morgan from 'morgan';
 import swaggerUi from 'swagger-ui-express';
 import { ENV } from './config/env.js';
 import { connectDB, disconnectDB } from './config/db.js';
 import { specs } from './config/swagger.js';
 import { ApiResponse } from './utils/apiResponse.js';
+import logger, { morganStream } from './config/logger.js';
 import adminRoutes from './routes/admin.routes.js';
 import authRoutes from './routes/auth.routes.js';
 import propertyManagerRoutes from './routes/propertyManager.routes.js';
 import userRoutes from './routes/user.routes.js';
 import propertyRoutes from './routes/property.routes.js';
 import categoryRoutes from './routes/category.routes.js';
-import transactionRoutes from './routes/transaction.route.js';
+import paymentRoutes from './routes/payment.route.js';
 import globalErrorHandler from './middlewares/error.middleware.js';
 import cors from 'cors';
 
@@ -23,22 +25,21 @@ const PORT = ENV.PORT;
 
 let server;
 
-// CORS middleware for Swagger UI and API requests
 app.use(
   cors({
-    origin: [`http://localhost:${PORT}`], // Allow both frontend and Swagger UI origins
+    origin: [`http://localhost:${PORT}`],
     methods: ['GET', 'POST', 'PATCH', 'DELETE'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   })
 );
 
+app.use(morgan('combined', { stream: morganStream }));
+app.use('/payment', paymentRoutes);
+
 app.use(express.json());
 
-// Serve uploaded files (development) so that local images can be accessed via URL
-// e.g. GET /uploads/properties/12345-image.jpg
 app.use('/uploads', express.static(path.join(process.cwd(), 'uploads')));
 
-// Swagger API Documentation
 app.use('/api/doc', swaggerUi.serve, swaggerUi.setup(specs));
 app.use('/api/doc-json', (_, res) => {
   res.setHeader('Content-Type', 'application/json');
@@ -49,7 +50,6 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/manager', propertyManagerRoutes);
 app.use('/api/v1/user', userRoutes);
-app.use('/webhook', transactionRoutes);
 app.use('/api/v1/properties', propertyRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 
@@ -61,33 +61,42 @@ app.get('/api/v1/health', (_, res) => {
   );
 });
 
-// Global error handler (must be after routes)
 app.use(globalErrorHandler);
 
 server = app.listen(PORT, () => {
-  console.log(`Server running at http://localhost:${PORT}`);
+  logger.info(`Server started successfully`, {
+    environment: ENV.NODE_ENV,
+    port: PORT,
+    url: `http://localhost:${PORT}`,
+  });
 });
 
 process.on('unhandledRejection', (err) => {
-  console.error('Unhandled Rejection: ', err);
+  logger.error('Unhandled Rejection', {
+    message: err?.message,
+    stack: err?.stack,
+  });
   server.close(async () => {
     await disconnectDB();
     process.exit(1);
   });
 });
 
-process.on('unCaughtException', (err) => {
-  console.error('Uncaught Exception: ', err);
+process.on('uncaughtException', (err) => {
+  logger.error('Uncaught Exception', {
+    message: err?.message,
+    stack: err?.stack,
+  });
   server.close(async () => {
     await disconnectDB();
     process.exit(1);
   });
 });
 
-process.on('SIGTERM', (err) => {
-  console.error('SIGTERM received shutting down gracefully: ', err);
+process.on('SIGTERM', () => {
+  logger.info('SIGTERM received – shutting down gracefully');
   server.close(async () => {
     await disconnectDB();
-    process.exit(1);
+    process.exit(0);
   });
 });

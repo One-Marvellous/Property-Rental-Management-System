@@ -1,7 +1,12 @@
 import bcrypt from 'bcrypt';
 import { jwt } from '../config/jwt.js';
 import { prisma } from '../config/db.js';
-import ApiError from '../utils/apiError.js';
+import {
+  AppError,
+  ConflictError,
+  UnauthorizedError,
+  ForbiddenError,
+} from '../shared/errors/index.js';
 import { UserRole } from '../models/roles.js';
 import { resolveUserRole } from '../utils/resolveUserRole.js';
 import { user_status } from '../generated/prisma/index.js';
@@ -13,54 +18,35 @@ import { user_status } from '../generated/prisma/index.js';
  * - refreshTokens: Validates refresh token and issues new access & refresh tokens
  */
 class AuthService {
-  /**
-   * Register a new user and assign default role
-   * @param {object} userData - User registration data
-   * @param {string} userData.email - User's email address
-   * @param {string} userData.password - User's plaintext password
-   * @param {string} userData.firstName - User's first name
-   * @param {string} userData.lastName - User's last name
-   * @param {string} userData.phoneNumber - User's phone number
-   * @returns {Promise<object>} Registered user data and JWT tokens
-   * @throws {ApiError} Throws ApiError for registration issues (e.g., email already registered)
-   */
   async registerUser(userData) {
     const { email, password, firstName, lastName, phoneNumber } = userData;
-    /**
-     * 1. Check if user already exists
-     */
+
+    // Check if user already exists
     const existingUser = await prisma.users.findUnique({
       where: { email },
     });
 
     if (existingUser) {
-      throw new ApiError(409, 'Email already registered');
+      throw new ConflictError('Email already registered');
     }
 
-    /**
-     * 2. Hash password
-     */
-
+    // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
-    /**
-     * 3. Get default role ("user")
-     */
-
+    // Get default role
     const defaultRole = await prisma.roles.findUnique({
       where: { name: UserRole.USER },
     });
 
     if (!defaultRole) {
-      throw new ApiError(
+      throw new AppError(
+        'Default role not found. Run role seeder before registering users.',
         500,
-        'Default role not found. Run role seeder before registering users.'
+        false
       );
     }
 
-    /**
-     * 4. Create user + assign role (transaction for safety)
-     */
+    // Create user + assign role (transaction for safety)
     const newUser = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.users.create({
         data: {
@@ -90,9 +76,7 @@ class AuthService {
       activeRole: UserRole.USER,
     });
 
-    /**
-     * 5. Return sanitized response
-     */
+    // Return sanitized response
     return {
       user: {
         ...newUser,
@@ -103,77 +87,49 @@ class AuthService {
     };
   }
 
-  /**
-   * Authenticate user and generate JWT tokens
-   * @param {string} email
-   * @param {string} password
-   * @throws {ApiError} Throws ApiError for invalid credentials or suspended accounts
-   * @returns {Promise<object>}
-   */
   async loginUser(email, password) {
-    /**
-     * 1. Find user by email and include active roles
-     */
+    // Find user by email and include active roles
     const user = await prisma.users.findUnique({
       where: { email },
       include: {
         user_roles_user_roles_user_idTousers: {
-          where: { revoked_at: null }, // only active roles
+          where: { revoked_at: null },
           include: { roles: true },
         },
       },
     });
 
-    /**
-     * If user does not exist → invalid credentials
-     * (Avoid revealing whether email exists for security)
-     */
+    // If user does not exist → invalid credentials
     if (!user) {
-      throw new ApiError(401, 'Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials');
     }
 
-    /**
-     * If user is suspended due to malicious activity → account suspended
-     */
-    if (user.status != user_status.suspended) {
-      throw new ApiError(403, 'Account suspended');
-    }
-
-    /**
-     * Deactivated users should not be able to log in
-     */
-    if (user.status != user_status.active) {
-      throw new ApiError(403, 'Account deactivated');
-    }
-
-    /**
-     * 2. Verify password hash
-     */
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
+    // If user password is invalid → invalid credentials
     if (!isValidPassword) {
-      throw new ApiError(401, 'Invalid credentials');
+      throw new UnauthorizedError('Invalid credentials');
     }
 
-    /**
-     * 3. Resolve active role from user's roles
-     */
+    //  If user is suspended due to malicious activity → account suspended
+    if (user.is_suspended) {
+      throw new ForbiddenError('Account suspended');
+    }
+
+    // Deactivated users should not be able to log in
+    if (user.status != user_status.active) {
+      throw new ForbiddenError('Account deactivated');
+    }
+
     const roleNames = user.user_roles_user_roles_user_idTousers.map(
       (ur) => ur.roles.name
     );
     const activeRole = resolveUserRole(roleNames);
 
-    /**
-     * 4. Generate access & refresh tokens
-     */
     const tokens = jwt.create({
       userId: user.id,
       activeRole: activeRole,
     });
-
-    /**
-     * 5. Return sanitized user data + tokens
-     */
 
     return {
       user: {
@@ -190,12 +146,6 @@ class AuthService {
     };
   }
 
-  /**
-   * Refreshes user Token
-   * @param {string} refreshToken
-   * @return {Promise<object>} New access and refresh tokens
-   * @throws {ApiError} Throws ApiError if refresh token is invalid or expired
-   */
   async refreshTokens(refreshToken) {
     try {
       const newTokens = await jwt.refresh(refreshToken);
@@ -204,11 +154,10 @@ class AuthService {
         accessToken: newTokens.accessToken,
         refreshToken: newTokens.refreshToken,
       };
-    } catch (error) {
-      throw new ApiError(401, 'Invalid refresh token', { cause: error });
+    } catch {
+      throw new UnauthorizedError('Invalid refresh token');
     }
   }
 }
 
-// Export singleton instance for use throughout the application
 export default new AuthService();

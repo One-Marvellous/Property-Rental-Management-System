@@ -2,35 +2,13 @@ export default {
   paths: {
     '/api/v1/categories': {
       get: {
-        summary: 'Get all categories',
-        description: 'Get all categories ever created',
+        summary: 'List categories',
+        description: 'Returns all property categories in the system.',
         tags: ['Admin', 'User', 'Property Manager', 'Category'],
         security: [{ BearerAuth: [] }],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['name', 'description'],
-                properties: {
-                  name: { type: 'string', example: 'Apartment' },
-                  description: {
-                    type: 'string',
-                    example: 'Modern apartment listings',
-                  },
-                  displayOrder: {
-                    type: 'integer',
-                    example: 0,
-                  },
-                },
-              },
-            },
-          },
-        },
         responses: {
           200: {
-            description: 'Category fetched successfully',
+            description: 'Categories list.',
             content: {
               'application/json': {
                 schema: {
@@ -58,8 +36,8 @@ export default {
         },
       },
       post: {
-        summary: 'Create a new category',
-        description: 'Create a new property category. Admin only.',
+        summary: 'Add a category',
+        description: 'Creates a new property category. Name must be unique.',
         tags: ['Admin', 'Category'],
         security: [{ BearerAuth: [] }],
         requestBody: {
@@ -86,7 +64,7 @@ export default {
         },
         responses: {
           201: {
-            description: 'Category created successfully',
+            description: 'Category created.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/CategoryResponse' },
@@ -94,7 +72,7 @@ export default {
             },
           },
           409: {
-            description: 'Category with this name already exists',
+            description: 'A category with that name already exists.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -117,7 +95,7 @@ export default {
       patch: {
         summary: 'Update a category',
         description:
-          'Update the description of an existing category. Admin only.',
+          'Updates the name, description, or display order of an existing category.',
         tags: ['Admin', 'Category'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -152,7 +130,7 @@ export default {
         },
         responses: {
           200: {
-            description: 'Category updated successfully',
+            description: 'Category updated.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/CategoryResponse' },
@@ -180,7 +158,8 @@ export default {
 
       delete: {
         summary: 'Delete a category',
-        description: 'Delete a property category. Admin only.',
+        description:
+          'Removes a category. Fails if any properties are still assigned to it.',
         tags: ['Admin', 'Category'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -194,7 +173,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Category deleted successfully',
+            description: 'Category deleted.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -202,7 +181,7 @@ export default {
             },
           },
           400: {
-            description: 'Cannot delete category with attached properties',
+            description: 'Properties are still using this category.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },

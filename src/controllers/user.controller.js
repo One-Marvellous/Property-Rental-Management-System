@@ -1,5 +1,6 @@
 import userService from '../services/user.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { SuccessMessages } from '../shared/messages/index.js';
 
 class UserController {
   async switchUserRole(req, res, next) {
@@ -12,9 +13,8 @@ class UserController {
         newRole,
       });
 
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Role switched successfully', result));
+      const { statusCode, message } = SuccessMessages.USER.ROLE_SWITCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -32,9 +32,8 @@ class UserController {
         startDate,
       });
 
-      res
-        .status(201)
-        .json(new ApiResponse(true, 'Booking successfully created', result));
+      const { statusCode, message } = SuccessMessages.USER.BOOKING_CREATED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -55,11 +54,8 @@ class UserController {
         order,
         status,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(true, 'User bookings fetched successfully', result)
-        );
+      const { statusCode, message } = SuccessMessages.USER.BOOKINGS_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -74,9 +70,8 @@ class UserController {
         userId,
         bookingId,
       });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Booking fetched successfully', result));
+      const { statusCode, message } = SuccessMessages.USER.BOOKING_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -94,9 +89,8 @@ class UserController {
         reason,
       });
 
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Booking cancelled successfully'));
+      const { statusCode, message } = SuccessMessages.USER.BOOKING_CANCELLED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
       next(error);
     }
@@ -112,15 +106,9 @@ class UserController {
         reason,
       });
 
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Manager application submitted successfully',
-            result
-          )
-        );
+      const { statusCode, message } =
+        SuccessMessages.USER.MANAGER_APPLICATION_SUBMITTED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -132,11 +120,9 @@ class UserController {
 
       await userService.cancelManagerApplication(userId);
 
-      res
-        .status(200)
-        .json(
-          new ApiResponse(true, 'Manager application cancelled successfully')
-        );
+      const { statusCode, message } =
+        SuccessMessages.USER.MANAGER_APPLICATION_CANCELLED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
       next(error);
     }
@@ -146,15 +132,9 @@ class UserController {
     try {
       const userId = req.user.userId;
       const result = await userService.getLatestManagerApplication(userId);
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Manager application fetched successfully',
-            result
-          )
-        );
+      const { statusCode, message } =
+        SuccessMessages.USER.MANAGER_APPLICATION_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -164,15 +144,9 @@ class UserController {
     try {
       const userId = req.user.userId;
       const result = await userService.getManagerApplicationStatus(userId);
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Manager application status fetched successfully',
-            result
-          )
-        );
+      const { statusCode, message } =
+        SuccessMessages.USER.MANAGER_APPLICATION_STATUS;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -186,9 +160,8 @@ class UserController {
         userId,
         rentalId,
       });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Rental fetched successfully', result));
+      const { statusCode, message } = SuccessMessages.USER.RENTAL_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -206,9 +179,8 @@ class UserController {
         paymentMode,
       });
 
-      res
-        .status(201)
-        .json(new ApiResponse(true, 'Invoice created successfully', result));
+      const { statusCode, message } = SuccessMessages.USER.INVOICE_CREATED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -220,46 +192,17 @@ class UserController {
   async createCheckoutSession(req, res, next) {
     try {
       const userId = req.user.userId;
-      const invoiceId = req.params.id;
+      const invoiceId = req.body.invoiceId;
 
       const session = await userService.createCheckoutSession({
         invoiceId,
         userId,
       });
 
-      res.status(200).json(
-        new ApiResponse(true, 'Stripe checkout session created', {
-          url: session.url,
-        })
-      );
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Handle payment success callback, retrieve Stripe session
-   */
-  async paymentSuccess(req, res, next) {
-    try {
-      const { session_id } = req.query;
-
-      const session = await userService.getCheckoutSession(session_id);
-
+      const { statusCode, message } = SuccessMessages.USER.CHECKOUT_CREATED;
       res
-        .status(200)
-        .json(new ApiResponse(true, 'Payment successful', { session }));
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Serve payment cancelled page (static or simple response)
-   */
-  async paymentCancelled(_, res, next) {
-    try {
-      res.status(200).send('Payment was cancelled. You can try again.');
+        .status(statusCode)
+        .json(new ApiResponse(true, message, { url: session.url }));
     } catch (error) {
       next(error);
     }
@@ -279,15 +222,9 @@ class UserController {
         order,
       });
 
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'User payment history fetched successfully',
-            result
-          )
-        );
+      const { statusCode, message } =
+        SuccessMessages.USER.PAYMENT_HISTORY_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }

@@ -1,12 +1,9 @@
 import { prisma } from '../config/db.js';
-import {
-  schedule_status,
-  rental_status,
-  invoice_status,
-  payment_status,
-} from '../generated/prisma/index.js';
+import { rental_status, payment_status } from '../generated/prisma/index.js';
+import stripe from '../config/stripe.js';
+import { AppError } from '../shared/errors/AppError.js';
 
-class TransactionService {
+class PaymentService {
   /**
    * Processes Stripe payment webhook and updates all related tables
    * @param {object} stripeEvent - Stripe webhook event object
@@ -34,7 +31,7 @@ class TransactionService {
       await tx.invoices.update({
         where: { id: invoiceId },
         data: {
-          status: invoice_status.paid,
+          status: 'paid',
           paid_at: new Date(),
           stripe_payment_intent_id: paymentIntentId,
         },
@@ -47,7 +44,7 @@ class TransactionService {
       for (const item of invoiceSchedules) {
         await tx.payment_schedules.update({
           where: { id: item.schedule_id },
-          data: { status: schedule_status.paid },
+          data: { status: 'paid' },
         });
       }
 
@@ -57,6 +54,26 @@ class TransactionService {
       });
     });
   }
+
+  async verifyPayment(sessionId) {
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent'],
+    });
+
+    if (session.payment_status !== 'paid') {
+      return new AppError('Payment not completed', 400);
+    }
+
+    await this.processPaymentTransaction({
+      id: `manual_${session.payment_intent.id}`,
+      type: 'checkout.session.completed',
+      data: { object: session },
+    });
+  }
+
+  async getCheckoutSession(sessionId) {
+    return await stripe.checkout.sessions.retrieve(sessionId);
+  }
 }
 
-export default new TransactionService();
+export default new PaymentService();

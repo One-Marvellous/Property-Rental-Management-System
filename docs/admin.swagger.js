@@ -1,12 +1,13 @@
 import { property_approval_status } from '../src/generated/prisma/index.js';
+import { OrderStatus } from '../src/models/order.js';
 
 export default {
   paths: {
     '/api/v1/admin/users': {
       get: {
-        summary: 'Get all users',
+        summary: 'List users',
         description:
-          'Retrieve all users with pagination and optional date filtering. Admin only.',
+          'Paginated list of all registered users. Supports date range filtering.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -37,7 +38,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Users retrieved successfully',
+            description: 'Users list.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/PaginatedUsers' },
@@ -58,8 +59,9 @@ export default {
 
     '/api/v1/admin/user/{id}/suspend': {
       patch: {
-        summary: 'Suspend a user',
-        description: 'Suspend (disable) an active user account. Admin only.',
+        summary: 'Suspend a user account',
+        description:
+          'Disables an active account. The user cannot log in while suspended.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -73,7 +75,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'User suspended successfully',
+            description: 'User suspended.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -89,7 +91,7 @@ export default {
             },
           },
           404: {
-            description: 'User not found or already suspended',
+            description: 'User not found.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -97,7 +99,7 @@ export default {
             },
           },
           409: {
-            description: 'User is already suspended',
+            description: 'Already suspended.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -110,9 +112,9 @@ export default {
 
     '/api/v1/admin/manager-applications': {
       get: {
-        summary: 'Get manager applications',
+        summary: 'List manager applications',
         description:
-          'Retrieve all manager applications with pagination, status filtering, and date filtering. Admin only.',
+          'Paginated list of all manager applications. Filter by status, date range, or both.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -153,7 +155,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Applications retrieved successfully',
+            description: 'Applications list.',
             content: {
               'application/json': {
                 schema: {
@@ -176,9 +178,9 @@ export default {
 
     '/api/v1/admin/manager-applications/{id}': {
       get: {
-        summary: 'Get manager application details',
+        summary: 'Get application details',
         description:
-          'Retrieve details of a specific manager application including user information. Admin only.',
+          "Returns a single manager application and the applicant's profile.",
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -192,7 +194,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Application details retrieved successfully',
+            description: 'Application details.',
             content: {
               'application/json': {
                 schema: {
@@ -225,7 +227,7 @@ export default {
       patch: {
         summary: 'Approve manager application',
         description:
-          'Approve a pending manager application and assign manager role to user. Admin only.',
+          'Marks the application approved and grants the manager role to the applicant.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -239,7 +241,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Application approved and role assigned successfully',
+            description: 'Application approved, role assigned.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -277,7 +279,8 @@ export default {
     '/api/v1/admin/manager-applications/{id}/reject': {
       patch: {
         summary: 'Reject manager application',
-        description: 'Reject a pending manager application. Admin only.',
+        description:
+          'Marks the application as rejected. The applicant can reapply later.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -291,7 +294,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Application rejected successfully',
+            description: 'Application rejected.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -326,10 +329,70 @@ export default {
       },
     },
 
+    '/api/v1/admin/property-submissions': {
+      get: {
+        summary: 'Get property submissions',
+        description:
+          'Retrieve all manager property submission with pagination, status filtering, and date filtering. Admin only.',
+        tags: ['Admin'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'page',
+            schema: { type: 'integer', default: 1 },
+            description: 'Page number for pagination',
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 15 },
+            description: 'Number of items per page',
+          },
+          {
+            in: 'query',
+            name: 'order',
+            schema: {
+              type: 'string',
+              example: 'desc',
+              enum: Object.values(OrderStatus),
+            },
+            description: 'Filter by application status',
+          },
+          {
+            in: 'query',
+            name: 'from',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Start date filter (ISO format)',
+          },
+          {
+            in: 'query',
+            name: 'to',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'End date filter (ISO format)',
+          },
+        ],
+        responses: {
+          responses: {
+            200: {
+              description: 'Property submissions retrieved successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: '#/components/schemas/PaginatedProperty',
+                  },
+                },
+              },
+            },
+          },
+        },
+      },
+    },
+
     '/api/v1/admin/property/{id}/approve': {
       patch: {
-        summary: 'Approve property submission',
-        description: 'Approve a pending property submission. Admin only.',
+        summary: 'Approve a property',
+        description: 'Clears a pending property for public listing.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -343,7 +406,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Property approved successfully',
+            description: 'Property approved.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -380,9 +443,9 @@ export default {
 
     '/api/v1/admin/property/{id}/reject': {
       patch: {
-        summary: 'Reject property submission',
+        summary: 'Reject a property',
         description:
-          'Reject a pending property submission with a reason. Admin only.',
+          'Declines a pending property submission. Include a reason in the request body.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -404,7 +467,7 @@ export default {
         },
         responses: {
           200: {
-            description: 'Property rejected successfully',
+            description: 'Property rejected.',
             content: {
               'application/json': {
                 schema: {
@@ -447,9 +510,8 @@ export default {
 
     '/api/v1/admin/property/{id}/suspend': {
       patch: {
-        summary: 'Suspend property',
-        description:
-          'Suspend an approved property from public listing. Admin only.',
+        summary: 'Suspend a property',
+        description: 'Pulls an approved property off the public listing.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -463,7 +525,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Property suspended successfully',
+            description: 'Property suspended.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -500,8 +562,9 @@ export default {
 
     '/api/v1/admin/income-per-property': {
       get: {
-        summary: 'Get income per property',
-        description: 'Retrieve income data for each property. Admin only.',
+        summary: 'Income by property',
+        description:
+          'Total income collected from each property across all successful rentals.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -515,7 +578,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Income data retrieved successfully',
+            description: 'Income data.',
             content: {
               'application/json': {
                 schema: {
