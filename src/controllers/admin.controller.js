@@ -1,9 +1,9 @@
-import ApiError from '../utils/apiError.js';
 import adminService from '../services/admin.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { SuccessMessages } from '../shared/messages/index.js';
 
 class AdminController {
-  async getUsers(req, res) {
+  async getUsers(req, res, next) {
     try {
       const { page, limit, from, to, order } = req.query;
       const result = await adminService.getAllUsers({
@@ -13,43 +13,26 @@ class AdminController {
         to,
         order,
       });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Users fetched successfully', result));
+      const { statusCode, message } = SuccessMessages.ADMIN.USERS_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error fetching users:', error);
-        res.status(500).json(new ApiResponse(false, 'Failed to fetch users'));
-      }
+      next(error);
     }
   }
 
-  async suspendUser(req, res) {
+  async suspendUser(req, res, next) {
     try {
       const userId = req.params.id;
       const adminId = req.user.userId;
-
       await adminService.suspendUser({ userId, adminId });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'User suspended successfully'));
+      const { statusCode, message } = SuccessMessages.ADMIN.USER_SUSPENDED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error suspending user:', error);
-        res.status(500).json(new ApiResponse(false, 'Failed to suspend user'));
-      }
+      next(error);
     }
   }
 
-  async getManagerApplications(req, res) {
+  async getManagerApplications(req, res, next) {
     try {
       const { page, limit, status, order, from, to } = req.query;
       const result = await adminService.getManagerApplications({
@@ -60,88 +43,43 @@ class AdminController {
         from,
         to,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Manager applications retrieved successfully',
-            result
-          )
-        );
+      const { statusCode, message } =
+        SuccessMessages.ADMIN.APPLICATIONS_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error fetching manager applications:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to fetch manager applications'));
-      }
+      next(error);
     }
   }
 
-  async getManagerApplicationById(req, res) {
+  async getManagerApplicationById(req, res, next) {
     try {
       const applicationId = req.params.id;
       const result =
         await adminService.getManagerApplicationById(applicationId);
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Manager application retrieved successfully',
-            result
-          )
-        );
+      const { statusCode, message } = SuccessMessages.ADMIN.APPLICATION_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error fetching manager application:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to fetch manager application'));
-      }
+      next(error);
     }
   }
 
-  async approveMangerApplication(req, res) {
+  async approveMangerApplication(req, res, next) {
     try {
       const applicationId = req.params.id;
       const reviewerId = req.user.userId;
-
       await adminService.approveManagerApplication({
         applicationId,
         reviewerId,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(true, 'Manager application approved successfully')
-        );
+      const { statusCode, message } =
+        SuccessMessages.ADMIN.APPLICATION_APPROVED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error approving manager application:', error);
-        res
-          .status(500)
-          .json(
-            new ApiResponse(false, 'Failed to approve manager application')
-          );
-      }
+      next(error);
     }
   }
 
-  async rejectMangerApplication(req, res) {
+  async rejectMangerApplication(req, res, next) {
     try {
       const applicationId = req.params.id;
       const reviewerId = req.user.userId;
@@ -149,26 +87,15 @@ class AdminController {
         applicationId,
         reviewerId,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(true, 'Manager application rejected successfully')
-        );
+      const { statusCode, message } =
+        SuccessMessages.ADMIN.APPLICATION_REJECTED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error rejecting manager application:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to reject manager application'));
-      }
+      next(error);
     }
   }
 
-  async getPropertySubmissions(req, res) {
+  async getPropertySubmissions(req, res, next) {
     try {
       const { page, limit, order, from, to } = req.query;
       const result = await adminService.getPropertySubmissions({
@@ -178,115 +105,60 @@ class AdminController {
         from,
         to,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Property submissions retrieved successfully',
-            result
-          )
-        );
+      const { statusCode, message } =
+        SuccessMessages.ADMIN.PROPERTY_SUBMISSIONS_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error fetching property submissions:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to fetch property submissions'));
-      }
+      next(error);
     }
   }
 
-  async approvePropertySubmission(req, res) {
+  async approvePropertySubmission(req, res, next) {
     try {
       const propertyId = req.params.id;
       const reviewerId = req.user.userId;
-
       await adminService.approvePropertySubmission(propertyId, reviewerId);
-      res
-        .status(200)
-        .json(
-          new ApiResponse(true, 'Property submission approved successfully')
-        );
+      const { statusCode, message } = SuccessMessages.ADMIN.PROPERTY_APPROVED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error approving property submission:', error);
-        res
-          .status(500)
-          .json(
-            new ApiResponse(false, 'Failed to approve property submission')
-          );
-      }
+      next(error);
     }
   }
 
-  async rejectPropertySubmission(req, res) {
+  async rejectPropertySubmission(req, res, next) {
     try {
       const propertyId = req.params.id;
       const reviewerId = req.user.userId;
       const { rejectionReason } = req.body;
-
       await adminService.rejectPropertySubmission({
         propertyId,
         reviewerId,
         rejectionReason,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(true, 'Property submission rejected successfully')
-        );
+      const { statusCode, message } = SuccessMessages.ADMIN.PROPERTY_REJECTED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error rejecting property submission:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to reject property submission'));
-      }
+      next(error);
     }
   }
 
-  async suspendProperty(req, res) {
+  async suspendProperty(req, res, next) {
     try {
       const propertyId = req.params.id;
       const reviewerId = req.user.userId;
-
       await adminService.suspendProperty({ propertyId, reviewerId });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Property suspended successfully'));
+      const { statusCode, message } = SuccessMessages.ADMIN.PROPERTY_SUSPENDED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
-      if (error instanceof ApiError) {
-        return res
-          .status(error.statusCode)
-          .json(new ApiResponse(false, error.message));
-      } else {
-        console.error('Error suspending property:', error);
-        res
-          .status(500)
-          .json(new ApiResponse(false, 'Failed to suspend property'));
-      }
+      next(error);
     }
   }
 
   async getIncomePerProperty(_, res, next) {
     try {
       const result = await adminService.getIncomePerProperty();
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Earning Retrieved successfully', result));
+      const { statusCode, message } = SuccessMessages.ADMIN.INCOME_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
