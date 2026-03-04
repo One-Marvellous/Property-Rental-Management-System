@@ -2,8 +2,9 @@ export default {
   paths: {
     '/api/v1/auth/register': {
       post: {
-        summary: 'Register a new user',
-        description: 'Create a new user account with email and password',
+        summary: 'Create an account',
+        description:
+          'Sign up with your email, name, and phone number. Returns access and refresh tokens on success.',
         tags: ['Authentication'],
         requestBody: {
           required: true,
@@ -49,7 +50,7 @@ export default {
         },
         responses: {
           201: {
-            description: 'User registered successfully',
+            description: 'Account created.',
             content: {
               'application/json': {
                 schema: {
@@ -90,8 +91,9 @@ export default {
 
     '/api/v1/auth/login': {
       post: {
-        summary: 'Login user',
-        description: 'Authenticate user with email and password',
+        summary: 'Log in',
+        description:
+          'Sign in with email and password. Returns fresh access and refresh tokens.',
         tags: ['Authentication'],
         requestBody: {
           required: true,
@@ -118,7 +120,7 @@ export default {
         },
         responses: {
           200: {
-            description: 'Login successful',
+            description: 'Login successful.',
             content: {
               'application/json': {
                 schema: {
@@ -138,7 +140,7 @@ export default {
             },
           },
           401: {
-            description: 'Invalid credentials',
+            description: 'Wrong email or password.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -146,7 +148,7 @@ export default {
             },
           },
           403: {
-            description: 'Account suspended',
+            description: 'Account is suspended.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -159,8 +161,8 @@ export default {
 
     '/api/v1/auth/refresh': {
       post: {
-        summary: 'Refresh access token',
-        description: 'Get a new access token using refresh token',
+        summary: 'Refresh tokens',
+        description: 'Exchange a valid refresh token for a new access token.',
         tags: ['Authentication'],
         requestBody: {
           required: true,
@@ -181,7 +183,7 @@ export default {
         },
         responses: {
           200: {
-            description: 'Token refreshed successfully',
+            description: 'New tokens issued.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/AuthRefreshResponse' },
@@ -189,7 +191,7 @@ export default {
             },
           },
           401: {
-            description: 'Invalid or expired refresh token',
+            description: 'Refresh token is invalid or expired.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
