@@ -20,6 +20,14 @@ import {
 
 const router = Router();
 
+router.get(
+  '/payment-success',
+  zodValidation(sessionIdParamValidator),
+  userController.paymentSuccess
+);
+
+router.get('/payment-cancelled', userController.paymentCancelled);
+
 router.post(
   '/switch-role',
   authenticateWithCustomErrors,
@@ -73,26 +81,18 @@ router.get(
 );
 
 router.get(
-  '/rentals:id',
+  '/rentals/:id',
   zodValidation(idParamValidator),
   userController.getRental
 );
 
 router.post(
-  '/rentals:id/create-invoice',
+  '/rentals/:id/create-invoice',
   zodValidation(createInvoiceValidator),
   userController.createInvoice
 );
 
 router.post('/rentals/:id/checkout', userController.createCheckoutSession);
-
-router.get(
-  '/payment-success',
-  zodValidation(sessionIdParamValidator),
-  userController.paymentSuccess
-);
-
-router.get('/payment-cancelled', userController.paymentCancelled);
 
 router.get(
   '/history/payments',
