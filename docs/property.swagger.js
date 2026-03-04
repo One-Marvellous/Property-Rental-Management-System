@@ -2,9 +2,8 @@ export default {
   paths: {
     '/api/v1/properties': {
       get: {
-        summary: 'Browse available properties',
-        description:
-          'Retrieve available and approved properties with pagination and optional date filtering. User role required.',
+        summary: 'Browse properties',
+        description: 'Paginated list of approved, available properties.',
         tags: ['Property'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -35,7 +34,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Properties retrieved successfully',
+            description: 'Properties list.',
             content: {
               'application/json': {
                 schema: {
@@ -58,9 +57,9 @@ export default {
 
     '/api/v1/properties/{id}': {
       get: {
-        summary: 'Get property details',
+        summary: 'Get a property',
         description:
-          'Retrieve a single property by ID including owner information. User role required.',
+          'Returns a single property by ID, including images and owner information.',
         tags: ['Property'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -74,7 +73,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Property retrieved successfully',
+            description: 'Property details.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/PropertyDetailResponse' },
