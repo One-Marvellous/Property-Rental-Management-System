@@ -4,9 +4,9 @@ export default {
   paths: {
     '/api/v1/user/switch-role': {
       post: {
-        summary: 'Switch user role',
+        summary: 'Switch active role',
         description:
-          'Switch between user and property manager roles. User role required.',
+          'Swap between user and manager roles. Returns fresh tokens reflecting the new role.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         requestBody: {
@@ -28,7 +28,7 @@ export default {
         },
         responses: {
           200: {
-            description: 'Role switched successfully',
+            description: 'Role switched. New tokens included.',
             content: {
               'application/json': {
                 schema: {
@@ -70,9 +70,9 @@ export default {
 
     '/api/v1/user/bookings': {
       post: {
-        summary: 'Create a booking',
+        summary: 'Book a property',
         description:
-          'Create a booking for an approved, available property. User role required.',
+          'Creates a booking for an approved, available property. Awaits manager approval.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         requestBody: {
@@ -97,7 +97,7 @@ export default {
         },
         responses: {
           201: {
-            description: 'Booking created successfully',
+            description: 'Booking created.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/BookingResponse' },
@@ -124,9 +124,8 @@ export default {
       },
 
       get: {
-        summary: 'List user bookings (paginated)',
-        description:
-          "Retrieve authenticated user's bookings with pagination and filters.",
+        summary: 'Your bookings',
+        description: 'Lists all your bookings. Filter by status or date range.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -166,7 +165,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Bookings retrieved successfully',
+            description: 'Bookings list.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/PaginatedBookings' },
@@ -195,9 +194,8 @@ export default {
 
     '/api/v1/user/bookings/{id}': {
       get: {
-        summary: 'Get booking by ID',
-        description:
-          'Retrieve a specific booking belonging to the authenticated user.',
+        summary: 'Get a booking',
+        description: 'Returns details for a specific booking you created.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -210,7 +208,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Booking retrieved successfully',
+            description: 'Booking details.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/BookingDetailResponse' },
@@ -239,8 +237,8 @@ export default {
 
     '/api/v1/user/bookings/{id}/cancel': {
       patch: {
-        summary: 'Cancel booking',
-        description: 'Cancel a pending booking. User role required.',
+        summary: 'Cancel a booking',
+        description: 'Cancels a pending booking. You must provide a reason.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -284,9 +282,9 @@ export default {
 
     '/api/v1/user/manager-application': {
       post: {
-        summary: 'Apply to become a property manager',
+        summary: 'Apply to be a manager',
         description:
-          'Submit an application to be a property manager. User role required.',
+          'Submits a manager application. Only one pending application is allowed at a time.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         requestBody: {
@@ -308,7 +306,7 @@ export default {
         },
         responses: {
           201: {
-            description: 'Application created successfully',
+            description: 'Application submitted.',
             content: {
               'application/json': {
                 schema: {
@@ -330,13 +328,13 @@ export default {
       },
 
       get: {
-        summary: 'Get latest manager application',
-        description: "Retrieve the user's latest manager application.",
+        summary: 'Your manager application',
+        description: 'Returns your current pending manager application.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         responses: {
           200: {
-            description: 'Application retrieved successfully',
+            description: 'Manager application.',
             content: {
               'application/json': {
                 schema: {
@@ -367,14 +365,13 @@ export default {
 
     '/api/v1/user/manager-application/cancel': {
       patch: {
-        summary: 'Cancel manager application',
-        description:
-          'Cancel a pending manager application. User role required.',
+        summary: 'Cancel your application',
+        description: 'Withdraws a pending manager application.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         responses: {
           200: {
-            description: 'Application cancelled successfully',
+            description: 'Application withdrawn.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -395,14 +392,14 @@ export default {
 
     '/api/v1/user/manager-application/status': {
       get: {
-        summary: 'Get manager application status',
+        summary: 'Application status',
         description:
-          "Retrieve only the status of the user's manager application.",
+          'Returns just the status field of your latest manager application.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         responses: {
           200: {
-            description: 'Status retrieved successfully',
+            description: 'Application status.',
             content: {
               'application/json': {
                 schema: {
@@ -425,7 +422,8 @@ export default {
 
     '/api/v1/user/rentals/{id}': {
       get: {
-        summary: 'Get rental details by ID',
+        summary: 'Get rental details',
+        description: 'Returns a rental record with its full payment history.',
         tags: ['User'],
         parameters: [
           {
@@ -459,7 +457,9 @@ export default {
 
     '/api/v1/user/rentals/{id}/create-invoice': {
       post: {
-        summary: 'Create invoice for rental',
+        summary: 'Create a payment invoice',
+        description:
+          'Generates an invoice for a rental. Only one pending invoice is allowed per rental.',
         tags: ['User'],
         parameters: [
           {
@@ -527,20 +527,41 @@ export default {
 
     '/api/v1/user/rentals/{id}/checkout': {
       post: {
-        summary: 'Initiate Stripe checkout session for rental invoice',
+        summary: 'Start Stripe checkout',
+        description:
+          'Creates a Stripe checkout session for a pending invoice. Returns a redirect URL.',
         tags: ['User'],
+        security: [{ BearerAuth: [] }],
         parameters: [
           {
             in: 'path',
             name: 'id',
             required: true,
             schema: { type: 'string' },
-            description: 'Rental ID',
+            description: 'Rental ID (used to scope the request)',
           },
         ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: {
+                type: 'object',
+                required: ['invoiceId'],
+                properties: {
+                  invoiceId: {
+                    type: 'string',
+                    description: 'ID of the pending payment/invoice to pay',
+                  },
+                },
+              },
+            },
+          },
+        },
         responses: {
           200: {
-            description: 'Stripe checkout session created',
+            description:
+              'Checkout session created. Redirect the user to the returned URL.',
             content: {
               'application/json': {
                 schema: {
@@ -562,8 +583,24 @@ export default {
               },
             },
           },
+          400: {
+            description: 'Bad request (missing invoiceId)',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+          401: {
+            description: 'Unauthorized',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
           404: {
-            description: 'Invoice or rental not found',
+            description: 'Pending payment/invoice not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -576,9 +613,9 @@ export default {
 
     '/api/v1/user/history/payments': {
       get: {
-        summary: 'Get user payment history',
+        summary: 'Payment history',
         description:
-          "Retrieve authenticated user's payment history with pagination and filters.",
+          'Paginated list of your completed payments. Filter by date range.',
         tags: ['User'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -610,7 +647,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'User payment history fetched successfully',
+            description: 'Payment history.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/PaginatedPayments' },
