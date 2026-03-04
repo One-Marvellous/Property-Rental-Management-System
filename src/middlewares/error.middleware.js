@@ -1,25 +1,53 @@
-import ApiError from '../utils/apiError.js';
-import { ApiResponse } from '../utils/apiResponse.js';
+import { AppError } from '../shared/errors/index.js';
+import logger from '../config/logger.js';
 
+/**
+ * Global error handler – must be registered after all routes.
+ *
+ * Operational errors (AppError instances) are returned to the client with
+ * their own statusCode and message.  Unexpected/programmer errors are logged
+ * in full and a generic 500 is sent to avoid leaking internals.
+ */
 export const globalErrorHandler = (err, req, res, next) => {
   if (res.headersSent) {
     return next(err);
   }
-  if (err instanceof ApiError) {
-    return res.status(err.statusCode || 500).json(
-      new ApiResponse(false, err.message || 'Error', {
-        code: err.code || 'ERROR',
-        errors: err.errors || [],
-      })
-    );
+
+  if (err instanceof AppError) {
+    if (!err.isOperational) {
+      logger.error('Non-operational AppError', {
+        message: err.message,
+        stack: err.stack,
+        path: req.path,
+        method: req.method,
+      });
+    } else {
+      logger.warn('Operational error', {
+        statusCode: err.statusCode,
+        message: err.message,
+        path: req.path,
+        method: req.method,
+      });
+    }
+
+    return res.status(err.statusCode).json({
+      success: false,
+      message: err.message,
+      ...(err.details !== undefined && { details: err.details }),
+    });
   }
 
-  console.error('Unhandled error:', err);
-  return res.status(500).json(
-    new ApiResponse(false, 'Internal Server Error', {
-      message: err?.message || 'An unexpected error occurred',
-    })
-  );
+  logger.error('Unhandled error', {
+    message: err?.message,
+    stack: err?.stack,
+    path: req.path,
+    method: req.method,
+  });
+
+  return res.status(500).json({
+    success: false,
+    message: 'Internal Server Error',
+  });
 };
 
 export default globalErrorHandler;

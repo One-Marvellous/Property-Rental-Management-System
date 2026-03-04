@@ -2,6 +2,7 @@ import { z } from 'zod';
 import {
   property_approval_status,
   booking_status,
+  pricing_unit,
 } from '../generated/prisma/index.js';
 
 // reused simple id schema for routes with only an :id parameter
@@ -57,12 +58,7 @@ export const addPropertyValidator = z.object({
         invalid_type_error: 'State must be a string',
       })
       .min(1, 'State cannot be empty'),
-    pricingUnit: z
-      .string({
-        required_error: 'Pricing unit is required',
-        invalid_type_error: 'Pricing unit must be a string',
-      })
-      .min(1, 'Pricing unit cannot be empty'),
+    pricingUnit: z.enum(Object.values(pricing_unit)),
     basePrice: z
       .union([z.number(), z.string()])
       .pipe(z.coerce.number().positive('Base price must be a positive number')),

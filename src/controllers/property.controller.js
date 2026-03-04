@@ -1,5 +1,6 @@
 import propertyService from '../services/property.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { SuccessMessages } from '../shared/messages/index.js';
 
 class PropertyController {
   async getProperties(req, res, next) {
@@ -16,9 +17,8 @@ class PropertyController {
         to,
       });
 
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Properties fetched successfully', result));
+      const { statusCode, message } = SuccessMessages.PROPERTY.LIST_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -29,9 +29,8 @@ class PropertyController {
       const propertyId = req.params.id;
 
       const result = await propertyService.getPropertyById(propertyId);
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Property successfully fetched', result));
+      const { statusCode, message } = SuccessMessages.PROPERTY.FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
