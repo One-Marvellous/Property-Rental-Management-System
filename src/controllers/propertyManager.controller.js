@@ -1,5 +1,6 @@
 import managerService from '../services/propertyManager.service.js';
 import { ApiResponse } from '../utils/apiResponse.js';
+import { SuccessMessages } from '../shared/messages/index.js';
 
 class PropertyManagerController {
   async addProperty(req, res, next) {
@@ -28,9 +29,8 @@ class PropertyManagerController {
         categoryId,
       });
 
-      res
-        .status(201)
-        .json(new ApiResponse(true, 'Property draft created', result));
+      const { statusCode, message } = SuccessMessages.MANAGER.PROPERTY_CREATED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -45,15 +45,9 @@ class PropertyManagerController {
         userId,
         propertyId,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(
-            true,
-            'Property published awaiting admin approval',
-            result
-          )
-        );
+      const { statusCode, message } =
+        SuccessMessages.MANAGER.PROPERTY_PUBLISHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -87,7 +81,8 @@ class PropertyManagerController {
         categoryId,
       });
 
-      res.status(200).json(new ApiResponse(true, 'Edits saved', result));
+      const { statusCode, message } = SuccessMessages.MANAGER.PROPERTY_UPDATED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -106,9 +101,8 @@ class PropertyManagerController {
         files,
       });
 
-      res
-        .status(201)
-        .json(new ApiResponse(true, 'Images uploaded successfully', result));
+      const { statusCode, message } = SuccessMessages.MANAGER.IMAGES_UPLOADED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -123,9 +117,8 @@ class PropertyManagerController {
         userId,
         propertyId,
       });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Property removed successfully'));
+      const { statusCode, message } = SuccessMessages.MANAGER.PROPERTY_REMOVED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
       next(error);
     }
@@ -146,11 +139,9 @@ class PropertyManagerController {
         order,
         status,
       });
-      res
-        .status(200)
-        .json(
-          new ApiResponse(true, 'User bookings fetched successfully', result)
-        );
+      const { statusCode, message } =
+        SuccessMessages.MANAGER.PROPERTIES_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -171,9 +162,8 @@ class PropertyManagerController {
         order,
         status,
       });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Bookings fetched successfully', result));
+      const { statusCode, message } = SuccessMessages.MANAGER.BOOKINGS_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -188,9 +178,8 @@ class PropertyManagerController {
         userId,
         bookingId,
       });
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Booking details fetched', result));
+      const { statusCode, message } = SuccessMessages.MANAGER.BOOKING_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
@@ -201,11 +190,11 @@ class PropertyManagerController {
       const bookingId = req.params.id;
       const userId = req.user.userId;
 
-      await managerService.approveBooking({ bookingId, userId });
+      const rental = await managerService.approveBooking({ bookingId, userId });
 
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Booking approved successfully'));
+      res;
+      const { statusCode, message } = SuccessMessages.MANAGER.BOOKING_APPROVED;
+      res.status(statusCode).json(new ApiResponse(true, message, { rental }));
     } catch (error) {
       next(error);
     }
@@ -218,9 +207,8 @@ class PropertyManagerController {
 
       await managerService.rejectBooking({ bookingId, userId });
 
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Booking rejected successfully'));
+      const { statusCode, message } = SuccessMessages.MANAGER.BOOKING_REJECTED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
       next(error);
     }
@@ -234,7 +222,8 @@ class PropertyManagerController {
 
       await managerService.removePropertyImage({ userId, propertyId, imageId });
 
-      res.status(200).json(new ApiResponse(true, 'Image removed successfully'));
+      const { statusCode, message } = SuccessMessages.MANAGER.IMAGE_REMOVED;
+      res.status(statusCode).json(new ApiResponse(true, message));
     } catch (error) {
       next(error);
     }
@@ -246,9 +235,8 @@ class PropertyManagerController {
 
       const result = await managerService.getIncome(userId);
 
-      res
-        .status(200)
-        .json(new ApiResponse(true, 'Earnings retrieved successfully', result));
+      const { statusCode, message } = SuccessMessages.MANAGER.INCOME_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
     } catch (error) {
       next(error);
     }
