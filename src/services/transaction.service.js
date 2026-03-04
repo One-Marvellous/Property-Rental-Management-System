@@ -1,8 +1,5 @@
 import { prisma } from '../config/db.js';
-import {
-  rental_status,
-  payment_status,
-} from '../generated/prisma/index.js';
+import { rental_status, payment_status } from '../generated/prisma/index.js';
 
 class TransactionService {
   /**
