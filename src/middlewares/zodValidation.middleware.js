@@ -1,5 +1,5 @@
 import { ZodError } from 'zod';
-import ApiError from '../utils/apiError.js';
+import { ValidationError, AppError } from '../shared/errors/index.js';
 
 export const zodValidation = (schema) => {
   return async (req, res, next) => {
@@ -12,30 +12,21 @@ export const zodValidation = (schema) => {
 
       return next();
     } catch (error) {
-      /**
-       * Handle Zod validation errors
-       */
       if (error instanceof ZodError) {
-        const errors = error.issues.map((issue) => ({
-          path: issue.path.join('.'),
+        const fields = error.issues.map((issue) => ({
+          field: issue.path.join('.'),
           message: issue.message,
         }));
 
-        return next(
-          new ApiError(400, 'Validation Error', 'VALIDATION_ERROR', errors)
-        );
+        return next(new ValidationError('Validation failed', { fields }));
       }
 
-      /**
-       * Handle unknown/internal errors
-       */
       return next(
-        new ApiError(500, 'Internal Server Error', 'UNKNOWN_ERROR', [
-          {
-            message:
-              error?.message || 'An unknown error occurred during validation.',
-          },
-        ])
+        new AppError(
+          error?.message || 'An unknown error occurred during validation.',
+          500,
+          false
+        )
       );
     }
   };
