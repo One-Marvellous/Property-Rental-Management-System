@@ -34,6 +34,22 @@ model categories {
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model payments {
+  id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  rental_id             String           @db.Uuid
+  amount                Decimal          @db.Decimal(12, 2)
+  category              payment_category
+  payment_method        String?          @db.VarChar
+  payment_status        payment_status
+  transaction_reference String?          @unique @db.VarChar
+  paid_at               DateTime?        @db.Timestamp(6)
+  created_at            DateTime         @default(now()) @db.Timestamp(6)
+  rentals               rentals          @relation(fields: [rental_id], references: [id], onUpdate: NoAction)
+
+  @@index([rental_id], map: "idx_payments_rental_id")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
 model properties {
   id                                  String                       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   title                               String                       @db.VarChar
@@ -65,6 +81,19 @@ model property_images {
   image_url   String     @db.VarChar
   created_at  DateTime   @default(now()) @db.Timestamp(6)
   properties  properties @relation(fields: [property_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model property_manager_applications {
+  id                                                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  user_id                                                String                     @unique(map: "idx_unique_pending_application") @db.Uuid
+  reason                                                 String
+  status                                                 manager_application_status @default(pending)
+  reviewed_by                                            String?                    @db.Uuid
+  reviewed_at                                            DateTime?                  @db.Timestamp(6)
+  created_at                                             DateTime                   @default(now()) @db.Timestamp(6)
+  users_property_manager_applications_reviewed_byTousers users?                     @relation("property_manager_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
+  users_property_manager_applications_user_idTousers     users                      @relation("property_manager_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
 }
 
 /// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
@@ -106,7 +135,7 @@ model user_roles {
   users_user_roles_user_idTousers     users     @relation("user_roles_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
 
   @@unique([user_id, role_id, revoked_at])
-  @@index([user_id, role_id], map: "idx_user_roles_active", where: raw("(revoked_at IS NULL)"))
+  @@index([user_id, role_id], map: "idx_user_roles_active")
 }
 
 model users {
@@ -129,34 +158,6 @@ model users {
   user_roles_user_roles_user_idTousers                                           user_roles[]                    @relation("user_roles_user_idTousers")
 }
 
-model payments {
-  id                    String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  rental_id             String           @db.Uuid
-  amount                Decimal          @db.Decimal(12, 2)
-  category              payment_category
-  payment_method        String?          @db.VarChar
-  payment_status        payment_status
-  transaction_reference String?          @unique @db.VarChar
-  paid_at               DateTime?        @db.Timestamp(6)
-  created_at            DateTime         @default(now()) @db.Timestamp(6)
-  rentals               rentals          @relation(fields: [rental_id], references: [id], onUpdate: NoAction)
-
-  @@index([rental_id], map: "idx_payments_rental_id")
-}
-
-/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
-model property_manager_applications {
-  id                                                     String                     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  user_id                                                String                     @unique(map: "idx_unique_pending_application", where: raw("(status = 'pending'::manager_application_status)")) @db.Uuid
-  reason                                                 String
-  status                                                 manager_application_status @default(pending)
-  reviewed_by                                            String?                    @db.Uuid
-  reviewed_at                                            DateTime?                  @db.Timestamp(6)
-  created_at                                             DateTime                   @default(now()) @db.Timestamp(6)
-  users_property_manager_applications_reviewed_byTousers users?                     @relation("property_manager_applications_reviewed_byTousers", fields: [reviewed_by], references: [id], onUpdate: NoAction)
-  users_property_manager_applications_user_idTousers     users                      @relation("property_manager_applications_user_idTousers", fields: [user_id], references: [id], onUpdate: NoAction)
-}
-
 enum booking_status {
   pending
   approved
@@ -169,6 +170,13 @@ enum manager_application_status {
   approved
   rejected
   cancelled
+}
+
+enum payment_category {
+  deposit
+  full_payment
+  part_payment
+  monthly
 }
 
 enum payment_status {
@@ -203,11 +211,4 @@ enum rental_status {
   active
   completed
   terminated
-}
-
-enum payment_category {
-  deposit
-  full_payment
-  part_payment
-  monthly
 }
