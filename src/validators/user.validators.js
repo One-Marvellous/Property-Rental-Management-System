@@ -153,6 +153,18 @@ export const sessionIdParamValidator = z.object({
 });
 
 /**
+ * Session ID Body Validator Schema
+ * Validates single ID body parameter
+ */
+export const sessionIdBodyValidator = z.object({
+  body: z.object({
+    sessionId: z.uuid('Invalid ID format'),
+  }),
+  query: z.object({}).strict().optional(),
+  params: z.object({}).strict().optional(),
+});
+
+/**
  * Get User Payment History Validator Schema
  * Validates pagination and filter parameters for user payment history
  */

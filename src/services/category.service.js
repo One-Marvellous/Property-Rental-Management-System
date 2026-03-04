@@ -15,7 +15,7 @@ class CategoryService {
   async getAllCategory() {
     const categories = await prisma.categories.findMany({
       orderBy: {
-        displayOrder: 'asc',
+        display_order: 'asc',
       },
     });
 

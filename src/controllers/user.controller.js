@@ -255,6 +255,21 @@ class UserController {
   }
 
   /**
+   * Handle updating DB when retrieved Stripe session has been paid
+   */
+  async verifyPayment(req, res, next) {
+    try {
+      const { sessionId } = req.body;
+
+      await userService.verifyPayment(sessionId);
+
+      res.status(200).json(new ApiResponse(true, 'Verification successful'));
+    } catch (error) {
+      next(error);
+    }
+  }
+
+  /**
    * Serve payment cancelled page (static or simple response)
    */
   async paymentCancelled(_, res, next) {

@@ -135,7 +135,7 @@ class AuthService {
     /**
      * If user is suspended due to malicious activity → account suspended
      */
-    if (user.status != user_status.suspended) {
+    if (user.status == user_status.suspended) {
       throw new ApiError(403, 'Account suspended');
     }
 

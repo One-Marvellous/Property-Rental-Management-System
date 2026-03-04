@@ -18,6 +18,7 @@ import {
 } from '../generated/prisma/index.js';
 import { PaymentMode } from '../models/paymentMode.js';
 import stripe from '../config/stripe.js';
+import transactionService from './transaction.service.js';
 
 /**
  * UserService handles business logic available to regular users
@@ -556,9 +557,9 @@ class UserService {
     }
 
     if (paymentMode === PaymentMode.FULL) {
-      this.createFullSettlementInvoice(rentalId);
+      return this.createFullSettlementInvoice(rentalId);
     } else {
-      this.createInstallmentInvoice(rentalId);
+      return this.createInstallmentInvoice(rentalId);
     }
   }
 
@@ -626,6 +627,26 @@ class UserService {
    */
   async getCheckoutSession(sessionId) {
     return await stripe.checkout.sessions.retrieve(sessionId);
+  }
+
+  /**
+   * Retrieves a Stripe Checkout Session by session ID and Verifies it is paid
+   * @param {string} sessionId - Stripe session ID
+   */
+  async verifyPayment(sessionId) {
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent'],
+    });
+
+    if (session.payment_status !== 'paid') {
+      return new ApiError(400, 'Payment not completed');
+    }
+
+    await transactionService.processPaymentTransaction({
+      id: `manual_${session.payment_intent.id}`,
+      type: 'checkout.session.completed',
+      data: { object: session },
+    });
   }
 
   /**

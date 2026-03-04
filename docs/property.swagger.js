@@ -44,14 +44,6 @@ export default {
               },
             },
           },
-          401: {
-            description: 'Unauthorized',
-            content: {
-              'application/json': {
-                schema: { $ref: '#/components/schemas/ErrorResponse' },
-              },
-            },
-          },
         },
       },
     },

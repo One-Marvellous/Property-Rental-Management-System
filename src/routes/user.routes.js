@@ -16,6 +16,7 @@ import {
   createInvoiceValidator,
   sessionIdParamValidator,
   getUserPaymentHistoryValidator,
+  sessionIdBodyValidator,
 } from '../validators/user.validators.js';
 
 const router = Router();
@@ -73,23 +74,29 @@ router.get(
 );
 
 router.get(
-  '/rentals:id',
+  '/rentals/:id',
   zodValidation(idParamValidator),
   userController.getRental
 );
 
 router.post(
-  '/rentals:id/create-invoice',
+  '/rentals/:id/create-invoice',
   zodValidation(createInvoiceValidator),
   userController.createInvoice
 );
 
-router.post('/rentals/:id/checkout', userController.createCheckoutSession);
+router.post('/invoice/:id/checkout', userController.createCheckoutSession);
 
 router.get(
   '/payment-success',
   zodValidation(sessionIdParamValidator),
   userController.paymentSuccess
+);
+
+router.post(
+  '/verify-payment',
+  zodValidation(sessionIdBodyValidator),
+  userController.verifyPayment
 );
 
 router.get('/payment-cancelled', userController.paymentCancelled);

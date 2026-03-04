@@ -427,6 +427,7 @@ export default {
       get: {
         summary: 'Get rental details by ID',
         tags: ['User'],
+        security: [{ BearerAuth: [] }],
         parameters: [
           {
             in: 'path',
@@ -461,6 +462,7 @@ export default {
       post: {
         summary: 'Create invoice for rental',
         tags: ['User'],
+        security: [{ BearerAuth: [] }],
         parameters: [
           {
             in: 'path',
@@ -525,17 +527,18 @@ export default {
       },
     },
 
-    '/api/v1/user/rentals/{id}/checkout': {
+    '/api/v1/user/invoice/{id}/checkout': {
       post: {
         summary: 'Initiate Stripe checkout session for rental invoice',
         tags: ['User'],
+        security: [{ BearerAuth: [] }],
         parameters: [
           {
             in: 'path',
             name: 'id',
             required: true,
             schema: { type: 'string' },
-            description: 'Rental ID',
+            description: 'Invoice ID',
           },
         ],
         responses: {

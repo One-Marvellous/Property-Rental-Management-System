@@ -149,7 +149,7 @@ class PropertyManagerController {
       res
         .status(200)
         .json(
-          new ApiResponse(true, 'User bookings fetched successfully', result)
+          new ApiResponse(true, 'User properties fetched successfully', result)
         );
     } catch (error) {
       next(error);

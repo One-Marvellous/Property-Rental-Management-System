@@ -32,6 +32,8 @@ app.use(
   })
 );
 
+app.use('/webhook', transactionRoutes);
+
 app.use(express.json());
 
 // Serve uploaded files (development) so that local images can be accessed via URL
@@ -49,7 +51,6 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/manager', propertyManagerRoutes);
 app.use('/api/v1/user', userRoutes);
-app.use('/webhook', transactionRoutes);
 app.use('/api/v1/properties', propertyRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 
