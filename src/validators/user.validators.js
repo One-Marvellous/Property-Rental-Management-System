@@ -146,10 +146,10 @@ export const createInvoiceValidator = z.object({
  */
 export const sessionIdParamValidator = z.object({
   body: z.object({}).strict().optional(),
-  query: z.object({}).strict().optional(),
-  params: z.object({
-    session_id: z.uuid('Invalid ID format'),
+  query: z.object({
+    session_id: z.string().min(1, 'session_id is required'),
   }),
+  params: z.object({}).optional(),
 });
 
 /**
