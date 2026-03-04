@@ -8,9 +8,9 @@ export default {
   paths: {
     '/api/v1/manager/properties': {
       post: {
-        summary: 'Create property draft',
+        summary: 'Create a property',
         description:
-          'Create a new property under the authenticated manager. Property will start in draft state.',
+          'Adds a new property under your account. Starts in draft state until published.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         requestBody: {
@@ -48,7 +48,7 @@ export default {
         },
         responses: {
           201: {
-            description: 'Property draft created successfully',
+            description: 'Property created.',
             content: {
               'application/json': {
                 schema: {
@@ -89,9 +89,9 @@ export default {
 
     '/api/v1/manager/properties/{id}/publish': {
       patch: {
-        summary: 'Publish property for approval',
+        summary: 'Submit for approval',
         description:
-          'Mark a manager-owned property as pending so that an admin can review it.',
+          'Flags the property as pending so an admin can review and approve it.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -105,7 +105,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Property submitted for approval',
+            description: 'Property submitted for review.',
             content: {
               'application/json': {
                 schema: {
@@ -138,9 +138,9 @@ export default {
 
     '/api/v1/manager/properties/{id}': {
       patch: {
-        summary: 'Edit a property',
+        summary: 'Update a property',
         description:
-          'Apply partial updates to a manager-owned property. Only supplied fields will change.',
+          'Apply partial updates to a property you own. Only the fields you send will change.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -174,7 +174,7 @@ export default {
         },
         responses: {
           200: {
-            description: 'Property updated successfully',
+            description: 'Property updated.',
             content: {
               'application/json': {
                 schema: {
@@ -214,7 +214,7 @@ export default {
       delete: {
         summary: 'Delete a property',
         description:
-          'Remove a property that belongs to the authenticated manager.',
+          'Removes a property and all its associated images permanently.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -228,7 +228,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Property deleted successfully',
+            description: 'Property deleted.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -249,9 +249,9 @@ export default {
 
     '/api/v1/manager/properties/{id}/images': {
       post: {
-        summary: 'Upload property image',
+        summary: 'Upload images',
         description:
-          'Upload a single image file for a property (field name: image).',
+          'Attach images to a property (max 5 total). Send files as multipart/form-data.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -281,7 +281,7 @@ export default {
         },
         responses: {
           201: {
-            description: 'Image uploaded successfully',
+            description: 'Images uploaded.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -302,8 +302,8 @@ export default {
 
     '/api/v1/manager/properties/{id}/images/{imageId}': {
       delete: {
-        summary: 'Delete a property image',
-        description: 'Delete a previously uploaded image for a property.',
+        summary: 'Delete an image',
+        description: 'Removes a specific image from a property.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -322,7 +322,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Image deleted successfully',
+            description: 'Image deleted.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -343,9 +343,9 @@ export default {
 
     '/api/v1/manager/properties/mine': {
       get: {
-        summary: "List manager's own properties",
+        summary: 'Your properties',
         description:
-          'Retrieve all properties owned by the authenticated manager with optional filters and pagination.',
+          'Lists all properties you manage. Filter by status or date range.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -410,9 +410,9 @@ export default {
 
     '/api/v1/manager/bookings/all': {
       get: {
-        summary: 'List all bookings for properties you manage',
+        summary: 'Bookings on your properties',
         description:
-          'Retrieve bookings associated with properties under your management with optional filtering and pagination.',
+          'Lists bookings across all your properties. Filter by status or date range.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -498,7 +498,7 @@ export default {
       get: {
         summary: 'Get booking details',
         description:
-          'Retrieve detailed information for a specific booking of a property you manage.',
+          'Returns full details of a booking on one of your properties, including tenant info.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -544,7 +544,7 @@ export default {
     '/api/v1/manager/bookings/{id}/approve': {
       patch: {
         summary: 'Approve a booking',
-        description: 'Approve a booking for a property you manage.',
+        description: 'Accepts a pending booking and creates a rental record.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -557,7 +557,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Booking approved successfully',
+            description: 'Booking approved.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -579,7 +579,7 @@ export default {
     '/api/v1/manager/bookings/{id}/reject': {
       patch: {
         summary: 'Reject a booking',
-        description: 'Reject a booking request for a property you manage.',
+        description: 'Declines a pending booking request.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         parameters: [
@@ -592,7 +592,7 @@ export default {
         ],
         responses: {
           200: {
-            description: 'Booking rejected successfully',
+            description: 'Booking rejected.',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ApiResponse' },
@@ -613,13 +613,14 @@ export default {
 
     '/api/v1/manager/income': {
       get: {
-        summary: 'Get income details',
-        description: 'Retrieve income details for a property you manage.',
+        summary: 'Your income',
+        description:
+          'Total income per property from all your successful rentals.',
         tags: ['Property Manager'],
         security: [{ BearerAuth: [] }],
         responses: {
           200: {
-            description: 'Income details retrieved successfully',
+            description: 'Income data.',
             content: {
               'application/json': {
                 schema: {
