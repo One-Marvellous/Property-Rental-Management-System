@@ -183,6 +183,7 @@ CREATE TABLE bookings (
   status booking_status NOT NULL DEFAULT 'pending',
   expires_at TIMESTAMP,
   cancelled_at TIMESTAMP,
+  cancellation_reason TEXT,
   created_at TIMESTAMP DEFAULT NOW(),
   CHECK(end_date >= start_date)
 );
@@ -248,6 +249,18 @@ CREATE TABLE invoices (
 CREATE INDEX idx_invoice_rental ON invoices(rental_id);
 CREATE INDEX idx_invoice_stripe_session ON invoices(stripe_checkout_session_id);
 CREATE INDEX idx_invoice_payment_intent ON invoices(stripe_payment_intent_id);
+
+
+-- =========================================================
+-- INVOICE SCHEDULE
+-- =========================================================
+CREATE TABLE invoice_schedules (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  invoice_id UUID NOT NULL REFERENCES invoices(id) ON DELETE CASCADE,
+  schedule_id UUID NOT NULL REFERENCES payment_schedules(id) ON DELETE CASCADE,
+  allocated_amount NUMERIC(12,2) NOT NULL CHECK (allocated_amount > 0),
+  created_at TIMESTAMP NOT NULL DEFAULT NOW()
+);
 
 -- =========================================================
 -- PAYMENTS

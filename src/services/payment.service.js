@@ -1,7 +1,9 @@
 import { prisma } from '../config/db.js';
 import { rental_status, payment_status } from '../generated/prisma/index.js';
+import stripe from '../config/stripe.js';
+import { AppError } from '../shared/errors/AppError.js';
 
-class TransactionService {
+class PaymentService {
   /**
    * Processes Stripe payment webhook and updates all related tables
    * @param {object} stripeEvent - Stripe webhook event object
@@ -52,6 +54,26 @@ class TransactionService {
       });
     });
   }
+
+  async verifyPayment(sessionId) {
+    const session = await stripe.checkout.sessions.retrieve(sessionId, {
+      expand: ['payment_intent'],
+    });
+
+    if (session.payment_status !== 'paid') {
+      return new AppError('Payment not completed', 400);
+    }
+
+    await this.processPaymentTransaction({
+      id: `manual_${session.payment_intent.id}`,
+      type: 'checkout.session.completed',
+      data: { object: session },
+    });
+  }
+
+  async getCheckoutSession(sessionId) {
+    return await stripe.checkout.sessions.retrieve(sessionId);
+  }
 }
 
-export default new TransactionService();
+export default new PaymentService();

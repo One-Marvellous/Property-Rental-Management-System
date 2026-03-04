@@ -14,19 +14,10 @@ import {
   cancelBookingValidator,
   applyForManagerValidator,
   createInvoiceValidator,
-  sessionIdParamValidator,
   getUserPaymentHistoryValidator,
 } from '../validators/user.validators.js';
 
 const router = Router();
-
-router.get(
-  '/payment-success',
-  zodValidation(sessionIdParamValidator),
-  userController.paymentSuccess
-);
-
-router.get('/payment-cancelled', userController.paymentCancelled);
 
 router.post(
   '/switch-role',
@@ -92,7 +83,7 @@ router.post(
   userController.createInvoice
 );
 
-router.post('/rentals/:id/checkout', userController.createCheckoutSession);
+router.post('/invoice/:id/checkout', userController.createCheckoutSession);
 
 router.get(
   '/history/payments',

@@ -425,6 +425,7 @@ export default {
         summary: 'Get rental details',
         description: 'Returns a rental record with its full payment history.',
         tags: ['User'],
+        security: [{ BearerAuth: [] }],
         parameters: [
           {
             in: 'path',
@@ -461,6 +462,7 @@ export default {
         description:
           'Generates an invoice for a rental. Only one pending invoice is allowed per rental.',
         tags: ['User'],
+        security: [{ BearerAuth: [] }],
         parameters: [
           {
             in: 'path',
@@ -525,7 +527,7 @@ export default {
       },
     },
 
-    '/api/v1/user/rentals/{id}/checkout': {
+    '/api/v1/user/invoice/{id}/checkout': {
       post: {
         summary: 'Start Stripe checkout',
         description:
@@ -538,7 +540,7 @@ export default {
             name: 'id',
             required: true,
             schema: { type: 'string' },
-            description: 'Rental ID (used to scope the request)',
+            description: 'Invoice ID',
           },
         ],
         requestBody: {

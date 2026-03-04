@@ -13,7 +13,8 @@ import { OrderStatus } from '../../models/order.js';
 import {
   rental_status,
   payment_status,
-  payment_category,
+  schedule_status,
+  invoice_status,
 } from '../../generated/prisma/index.js';
 import { PaymentMode } from '../../models/paymentMode.js';
 import stripe from '../../config/stripe.js';
@@ -24,7 +25,15 @@ class RentalService {
 
     const rental = await prisma.rentals.findUnique({
       where: { id: rentalId, user_id: userId },
-      include: { payments: { orderBy: { created_at: 'asc' } } },
+      include: {
+        invoices: true,
+        payment_schedules: {
+          where: {
+            rental_id: rentalId,
+          },
+          orderBy: { due_date: 'asc' },
+        },
+      },
     });
 
     if (!rental) throw new NotFoundError('Booking');
@@ -40,8 +49,74 @@ class RentalService {
       lease_end: rental.lease_end,
       pricing_unit: rental.pricing_unit,
       agreed_price: rental.agreed_price,
-      payments: rental.payments,
+      payment_schedules: rental.payment_schedules,
+      invoices: rental.invoices,
     };
+  }
+
+  async createInstallmentInvoice(rentalId) {
+    const schedule = await prisma.payment_schedules.findFirst({
+      where: {
+        rental_id: rentalId,
+        status: schedule_status.pending,
+      },
+      orderBy: { due_date: 'asc' },
+    });
+
+    if (!schedule) throw new new NotFoundError('No unpaid schedules')();
+
+    return await prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoices.create({
+        data: {
+          rental_id: rentalId,
+          total_amount: schedule.amount,
+        },
+      });
+
+      await tx.invoice_schedules.create({
+        data: {
+          invoice_id: invoice.id,
+          schedule_id: schedule.id,
+          allocated_amount: schedule.amount,
+        },
+      });
+
+      return invoice;
+    });
+  }
+
+  async createFullSettlementInvoice(rentalId) {
+    const schedules = await prisma.payment_schedules.findMany({
+      where: {
+        rental_id: rentalId,
+        status: schedule_status.pending,
+      },
+    });
+
+    if (!schedules.length) throw new Error('Nothing to settle');
+
+    const total = schedules.reduce((sum, s) => sum + Number(s.amount), 0);
+
+    return await prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoices.create({
+        data: {
+          rental_id: rentalId,
+          total_amount: total,
+        },
+      });
+
+      for (const schedule of schedules) {
+        await tx.invoice_schedules.create({
+          data: {
+            invoice_id: invoice.id,
+            schedule_id: schedule.id,
+            allocated_amount: schedule.amount,
+          },
+        });
+      }
+
+      return invoice;
+    });
   }
 
   async createInvoice(data) {
@@ -64,36 +139,27 @@ class RentalService {
       throw new BadRequestError('Rental terminated');
     }
 
-    const category =
-      paymentMode === PaymentMode.FULL
-        ? payment_category.full_payment
-        : payment_category.part_payment;
-
-    const payment = await prisma.payments.create({
-      data: {
-        rental_id: rentalId,
-        amount: rental.agreed_price,
-        category,
-        payment_status: payment_status.pending,
-      },
-    });
-
-    return payment;
+    if (paymentMode === PaymentMode.FULL) {
+      return this.createFullSettlementInvoice(rentalId);
+    } else {
+      return this.createInstallmentInvoice(rentalId);
+    }
   }
 
   async createCheckoutSession(data) {
     const { invoiceId, userId } = data;
 
-    const payment = await prisma.payments.findFirst({
+    const invoice = await prisma.payments.findFirst({
       where: {
         id: invoiceId,
-        payment_status: payment_status.pending,
-        rentals: { user_id: userId },
+        status: invoice_status.pending,
+        rentals: {
+          user_id: userId,
+        },
       },
-      include: { rentals: true },
     });
 
-    if (!payment) throw new NotFoundError('Pending payment');
+    if (!invoice) throw new NotFoundError('Pending invoice not found');
     if (!stripe)
       throw new AppError('Stripe is not configured on this server', 503);
 
@@ -104,8 +170,8 @@ class RentalService {
         {
           price_data: {
             currency: 'ngn',
-            product_data: { name: `Rental Payment ${payment.id}` },
-            unit_amount: Math.round(Number(payment.amount) * 100),
+            product_data: { name: `Rental Invoice ${invoice.id}` },
+            unit_amount: invoice.total_amount * 100,
           },
           quantity: 1,
         },
@@ -113,19 +179,22 @@ class RentalService {
       success_url: `http://localhost:${ENV.PORT}/api/v1/user/payment-success?session_id={CHECKOUT_SESSION_ID}`,
       cancel_url: `http://localhost:${ENV.PORT}/api/v1/user/payment-cancelled`,
       metadata: {
-        payment_id: payment.id,
-        rental_id: payment.rental_id,
+        payment_id: invoice.id,
+        rental_id: invoice.rental_id,
         user_id: userId,
       },
     });
 
-    return session;
-  }
+    // Store session ID for later reference
+    await prisma.invoices.update({
+      where: { id: invoice.id },
+      data: {
+        stripe_checkout_session_id: session.id,
+        stripe_payment_intent_id: session.payment_intent,
+      },
+    });
 
-  async getCheckoutSession(sessionId) {
-    if (!stripe)
-      throw new AppError('Stripe is not configured on this server', 503);
-    return await stripe.checkout.sessions.retrieve(sessionId);
+    return session;
   }
 
   async getUserPaymentHistory(data) {
@@ -151,13 +220,21 @@ class RentalService {
       where: {
         ...where,
         payment_status: payment_status.successful,
-        rentals: { user_id: userId },
+        invoices: {
+          rentals: {
+            user_id: userId,
+          },
+        },
       },
       include: {
-        rentals: {
+        invoices: {
           include: {
-            properties: {
-              select: { title: true, city: true, state: true, id: true },
+            rentals: {
+              include: {
+                properties: {
+                  select: { title: true, city: true, state: true, id: true },
+                },
+              },
             },
           },
         },
@@ -171,17 +248,21 @@ class RentalService {
       payment_id: p.id,
       amount: p.amount,
       paid_at: p.paid_at,
-      property_id: p.rentals.properties.id,
-      property_title: p.rentals.properties.title,
-      city: p.rentals.properties.city,
-      state: p.rentals.properties.state,
+      property_id: p.invoices.rentals.properties.id,
+      property_title: p.invoices.rentals.properties.title,
+      city: p.invoices.rentals.properties.city,
+      state: p.invoices.rentals.properties.state,
     }));
 
     const total = await prisma.payments.count({
       where: {
         ...where,
         payment_status: payment_status.successful,
-        rentals: { user_id: userId },
+        invoices: {
+          rentals: {
+            user_id: userId,
+          },
+        },
       },
     });
 

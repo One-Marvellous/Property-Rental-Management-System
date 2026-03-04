@@ -11,6 +11,7 @@ import {
 import { booking_status } from '../../generated/prisma/index.js';
 import { OrderStatus } from '../../models/order.js';
 import { ENV } from '../../config/env.js';
+import { calculateDueDate } from '../../utils/calculateDueDate.js';
 
 class ManagerBookingService {
   async getAllBookings(data) {
@@ -95,8 +96,10 @@ class ManagerBookingService {
       });
 
       if (!booking) throw new NotFoundError('Booking');
+
       if (booking.cancelled_at)
         throw new BadRequestError('Cannot approve cancelled booking');
+
       if (booking.status !== 'pending')
         throw new ConflictError('Booking already processed');
 
@@ -119,11 +122,30 @@ class ManagerBookingService {
       });
 
       const duration = booking.proposed_amount / booking.properties.base_price;
-      void duration; // reserved for future payment schedule implementation
+
+      const schedules = [];
+
+      for (let i = 1; i <= duration; i++) {
+        schedules.push({
+          rental_id: rental.id,
+          due_date: calculateDueDate(
+            booking.start_date,
+            i,
+            booking.properties.pricing_unit
+          ),
+          amount: booking.properties.base_price,
+        });
+      }
+
+      await tx.payment_schedules.createMany({
+        data: schedules,
+      });
 
       await tx.bookings.update({
         where: { id: booking.id },
-        data: { status: booking_status.approved },
+        data: {
+          status: booking_status.approved,
+        },
       });
 
       return rental;

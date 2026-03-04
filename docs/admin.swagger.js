@@ -1,4 +1,5 @@
 import { property_approval_status } from '../src/generated/prisma/index.js';
+import { OrderStatus } from '../src/models/order.js';
 
 export default {
   paths: {
@@ -321,6 +322,66 @@ export default {
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/admin/property-submissions': {
+      get: {
+        summary: 'Get property submissions',
+        description:
+          'Retrieve all manager property submission with pagination, status filtering, and date filtering. Admin only.',
+        tags: ['Admin'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'query',
+            name: 'page',
+            schema: { type: 'integer', default: 1 },
+            description: 'Page number for pagination',
+          },
+          {
+            in: 'query',
+            name: 'limit',
+            schema: { type: 'integer', default: 15 },
+            description: 'Number of items per page',
+          },
+          {
+            in: 'query',
+            name: 'order',
+            schema: {
+              type: 'string',
+              example: 'desc',
+              enum: Object.values(OrderStatus),
+            },
+            description: 'Filter by application status',
+          },
+          {
+            in: 'query',
+            name: 'from',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'Start date filter (ISO format)',
+          },
+          {
+            in: 'query',
+            name: 'to',
+            schema: { type: 'string', format: 'date-time' },
+            description: 'End date filter (ISO format)',
+          },
+        ],
+        responses: {
+          responses: {
+            200: {
+              description: 'Property submissions retrieved successfully',
+              content: {
+                'application/json': {
+                  schema: {
+                    $ref: '#/components/schemas/PaginatedProperty',
+                  },
+                },
               },
             },
           },

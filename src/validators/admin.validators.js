@@ -63,7 +63,7 @@ export const createCategoryValidator = z.object({
       .max(500, 'Description must not exceed 500 characters'),
     displayOrder: z
       .union([z.number(), z.string()])
-      .pipe(z.coerce.number().positive('Base price must be a positive number'))
+      .pipe(z.coerce.number())
       .optional(),
   }),
   query: z.object({}).strict().optional(),

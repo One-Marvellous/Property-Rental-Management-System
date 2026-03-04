@@ -36,7 +36,16 @@ class ManagerPropertyService {
         manager_id: userId,
         category_id: categoryId,
       },
-      omit: { approved_at: true, approved_by: true, rejection_reason: true },
+      omit: {
+        approved_at: true,
+        rejected_at: true,
+        suspended_at: true,
+        deleted_at: true,
+        approved_by: true,
+        rejected_by: true,
+        suspended_by: true,
+        rejection_reason: true,
+      },
     });
 
     return property;
@@ -63,14 +72,16 @@ class ManagerPropertyService {
       where: { id: propertyId, manager_id: userId },
       data: {
         approval_status: property_approval_status.pending,
-        approved_by: null,
-        approved_at: null,
-        rejection_reason: null,
       },
       omit: {
         approval_status: true,
         approved_by: true,
         approved_at: true,
+        suspended_by: true,
+        suspended_at: true,
+        rejected_at: true,
+        rejected_by: true,
+        deleted_at: true,
         rejection_reason: true,
       },
     });
@@ -121,6 +132,11 @@ class ManagerPropertyService {
         approval_status: true,
         approved_by: true,
         approved_at: true,
+        suspended_by: true,
+        suspended_at: true,
+        rejected_at: true,
+        rejected_by: true,
+        deleted_at: true,
         rejection_reason: true,
       },
     });
@@ -187,6 +203,8 @@ class ManagerPropertyService {
       if (to) where.created_at.lte = new Date(to);
     }
 
+    where.manager_id = userId;
+
     if (status) where.approval_status = status;
 
     const properties = await prisma.properties.findMany({
@@ -207,7 +225,9 @@ class ManagerPropertyService {
     const property = await prisma.properties.findFirst({
       where: { id: propertyId, manager_id: userId },
     });
+
     if (!property) throw new NotFoundError('Property');
+
     if (!files || files.length === 0)
       throw new BadRequestError('No files provided');
 
@@ -262,6 +282,7 @@ class ManagerPropertyService {
     if (!image) throw new NotFoundError('Image');
 
     await imageUploader.deleteImageByPublicId(image.public_id, image.image_url);
+
     await prisma.property_images.delete({ where: { id: imageId } });
   }
 }

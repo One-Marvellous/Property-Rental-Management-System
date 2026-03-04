@@ -49,12 +49,15 @@ class UserService {
   createBooking(data) {
     return bookingService.createBooking(data);
   }
+
   getUserBookings(filters) {
     return bookingService.getUserBookings(filters);
   }
+
   getBookingById(data) {
     return bookingService.getBookingById(data);
   }
+
   cancelBooking(data) {
     return bookingService.cancelBooking(data);
   }
@@ -62,12 +65,15 @@ class UserService {
   applyForManager(data) {
     return managerApplicationService.applyForManager(data);
   }
+
   cancelManagerApplication(userId) {
     return managerApplicationService.cancelManagerApplication(userId);
   }
+
   getLatestManagerApplication(userId) {
     return managerApplicationService.getLatestManagerApplication(userId);
   }
+
   getManagerApplicationStatus(userId) {
     return managerApplicationService.getManagerApplicationStatus(userId);
   }
@@ -75,15 +81,15 @@ class UserService {
   getRental(data) {
     return rentalService.getRental(data);
   }
+
   createInvoice(data) {
     return rentalService.createInvoice(data);
   }
+
   createCheckoutSession(data) {
     return rentalService.createCheckoutSession(data);
   }
-  getCheckoutSession(sessionId) {
-    return rentalService.getCheckoutSession(sessionId);
-  }
+
   getUserPaymentHistory(data) {
     return rentalService.getUserPaymentHistory(data);
   }

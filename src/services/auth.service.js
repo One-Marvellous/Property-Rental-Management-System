@@ -9,6 +9,7 @@ import {
 } from '../shared/errors/index.js';
 import { UserRole } from '../models/roles.js';
 import { resolveUserRole } from '../utils/resolveUserRole.js';
+import { user_status } from '../generated/prisma/index.js';
 
 /**
  * AuthService handles user authentication, registration, and token management
@@ -20,6 +21,7 @@ class AuthService {
   async registerUser(userData) {
     const { email, password, firstName, lastName, phoneNumber } = userData;
 
+    // Check if user already exists
     const existingUser = await prisma.users.findUnique({
       where: { email },
     });
@@ -28,8 +30,10 @@ class AuthService {
       throw new ConflictError('Email already registered');
     }
 
+    // Hash password
     const passwordHash = await bcrypt.hash(password, 10);
 
+    // Get default role
     const defaultRole = await prisma.roles.findUnique({
       where: { name: UserRole.USER },
     });
@@ -42,6 +46,7 @@ class AuthService {
       );
     }
 
+    // Create user + assign role (transaction for safety)
     const newUser = await prisma.$transaction(async (tx) => {
       const createdUser = await tx.users.create({
         data: {
@@ -71,6 +76,7 @@ class AuthService {
       activeRole: UserRole.USER,
     });
 
+    // Return sanitized response
     return {
       user: {
         ...newUser,
@@ -82,6 +88,7 @@ class AuthService {
   }
 
   async loginUser(email, password) {
+    // Find user by email and include active roles
     const user = await prisma.users.findUnique({
       where: { email },
       include: {
@@ -92,18 +99,26 @@ class AuthService {
       },
     });
 
+    // If user does not exist → invalid credentials
     if (!user) {
       throw new UnauthorizedError('Invalid credentials');
     }
 
     const isValidPassword = await bcrypt.compare(password, user.password_hash);
 
+    // If user password is invalid → invalid credentials
     if (!isValidPassword) {
       throw new UnauthorizedError('Invalid credentials');
     }
 
+    //  If user is suspended due to malicious activity → account suspended
     if (user.is_suspended) {
       throw new ForbiddenError('Account suspended');
+    }
+
+    // Deactivated users should not be able to log in
+    if (user.status != user_status.active) {
+      throw new ForbiddenError('Account deactivated');
     }
 
     const roleNames = user.user_roles_user_roles_user_idTousers.map(

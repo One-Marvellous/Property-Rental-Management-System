@@ -208,45 +208,6 @@ class UserController {
     }
   }
 
-  /**
-   * Handle payment success callback, retrieve Stripe session
-   */
-  async paymentSuccess(req, res, next) {
-    try {
-      const { session_id } = req.query;
-
-      const session = await userService.getCheckoutSession(session_id);
-
-      const summary = {
-        status: session.status,
-        paymentStatus: session.payment_status,
-        amountTotal: session.amount_total / 100,
-        currency: session.currency.toUpperCase(),
-        customerEmail: session.customer_details?.email ?? null,
-        customerName: session.customer_details?.name ?? null,
-        paymentId: session.metadata?.payment_id ?? null,
-        rentalId: session.metadata?.rental_id ?? null,
-        paymentIntent: session.payment_intent ?? null,
-      };
-
-      const { statusCode, message } = SuccessMessages.USER.PAYMENT_SUCCESS;
-      res.status(statusCode).json(new ApiResponse(true, message, summary));
-    } catch (error) {
-      next(error);
-    }
-  }
-
-  /**
-   * Serve payment cancelled page (static or simple response)
-   */
-  async paymentCancelled(_, res, next) {
-    try {
-      res.status(200).send('Payment was cancelled. You can try again.');
-    } catch (error) {
-      next(error);
-    }
-  }
-
   async getUserPaymentHistory(req, res, next) {
     try {
       const userId = req.user.userId;

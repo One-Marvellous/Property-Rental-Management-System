@@ -13,7 +13,7 @@ import propertyManagerRoutes from './routes/propertyManager.routes.js';
 import userRoutes from './routes/user.routes.js';
 import propertyRoutes from './routes/property.routes.js';
 import categoryRoutes from './routes/category.routes.js';
-import transactionRoutes from './routes/transaction.route.js';
+import paymentRoutes from './routes/payment.route.js';
 import globalErrorHandler from './middlewares/error.middleware.js';
 import cors from 'cors';
 
@@ -34,6 +34,7 @@ app.use(
 );
 
 app.use(morgan('combined', { stream: morganStream }));
+app.use('/payment', paymentRoutes);
 
 app.use(express.json());
 
@@ -49,7 +50,6 @@ app.use('/api/v1/admin', adminRoutes);
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/manager', propertyManagerRoutes);
 app.use('/api/v1/user', userRoutes);
-app.use('/webhook', transactionRoutes);
 app.use('/api/v1/properties', propertyRoutes);
 app.use('/api/v1/categories', categoryRoutes);
 

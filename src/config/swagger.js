@@ -12,7 +12,7 @@ import propertyDoc from '../../docs/property.swagger.js';
 import userDoc from '../../docs/user.swagger.js';
 import managerDoc from '../../docs/propertyManager.swagger.js';
 import categoryDoc from '../../docs/category.swagger.js';
-
+import paymentDoc from '../../docs/payment.swagger.js';
 const swaggerOptions = {
   definition: {
     openapi: '3.0.0',
@@ -550,6 +550,7 @@ const mergedPaths = {
   ...(userDoc && userDoc.paths ? userDoc.paths : {}),
   ...(managerDoc && managerDoc.paths ? managerDoc.paths : {}),
   ...(categoryDoc && categoryDoc.paths ? categoryDoc.paths : {}),
+  ...(paymentDoc && paymentDoc.paths ? paymentDoc.paths : {}),
 };
 
 export const specs = {

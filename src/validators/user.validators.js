@@ -141,18 +141,6 @@ export const createInvoiceValidator = z.object({
 });
 
 /**
- * Session ID Parameter Validator Schema
- * Validates single ID path parameter
- */
-export const sessionIdParamValidator = z.object({
-  body: z.object({}).strict().optional(),
-  query: z.object({
-    session_id: z.string().min(1, 'session_id is required'),
-  }),
-  params: z.object({}).optional(),
-});
-
-/**
  * Get User Payment History Validator Schema
  * Validates pagination and filter parameters for user payment history
  */
