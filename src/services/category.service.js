@@ -1,5 +1,9 @@
 import { prisma } from '../config/db.js';
-import ApiError from '../utils/apiError.js';
+import {
+  BadRequestError,
+  ConflictError,
+  NotFoundError,
+} from '../shared/errors/index.js';
 
 /**
  * CategoryService handles operations related to property categories,
@@ -14,9 +18,7 @@ class CategoryService {
    */
   async getAllCategory() {
     const categories = await prisma.categories.findMany({
-      orderBy: {
-        displayOrder: 'asc',
-      },
+      orderBy: { name: 'asc' },
     });
 
     return { categories };
@@ -39,7 +41,7 @@ class CategoryService {
       where: { name: name.toLowerCase() },
     });
     if (existingCategory) {
-      throw new ApiError(409, 'Category with this name already exists');
+      throw new ConflictError('Category with this name already exists');
     }
 
     const toCreate = {
@@ -79,7 +81,7 @@ class CategoryService {
     });
 
     if (!updatedCategory) {
-      throw new ApiError(404, 'Category not found');
+      throw new NotFoundError('Category');
     }
 
     return updatedCategory;
@@ -103,13 +105,12 @@ class CategoryService {
     });
 
     if (!category) {
-      throw new ApiError(404, 'Category not found');
+      throw new NotFoundError('Category');
     }
 
     // Prevent deletion if a property is attached to the id
     if (category.properties.length > 0) {
-      throw new ApiError(
-        400,
+      throw new BadRequestError(
         'Cannot delete category with attached properties'
       );
     }
