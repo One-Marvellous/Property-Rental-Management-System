@@ -1,77 +1,44 @@
 import { prisma } from '../config/db.js';
-import ApiError from '../utils/apiError.js';
-import { ENV } from '../config/env.js';
-import { buildPaginatedResponse, getPagination } from '../utils/pagination.js';
-import { calculateFutureDate } from '../utils/calculateFutureDate.js';
-import { UserRole } from '../models/roles.js';
-import { OrderStatus } from '../models/order.js';
+import { ForbiddenError } from '../shared/errors/index.js';
 import { jwt } from '../config/jwt.js';
-import {
-  property_approval_status,
-  manager_application_status,
-  property_availability_status,
-  booking_status,
-  rental_status,
-  payment_status,
-} from '../generated/prisma/index.js';
-import { PaymentMode } from '../models/paymentMode.js';
-import stripe from '../config/stripe.js';
+
+// Sub-modules
+import bookingService from './user/booking.service.js';
+import managerApplicationService from './user/managerApplication.service.js';
+import rentalService from './user/rental.service.js';
 
 /**
- * UserService handles business logic available to regular users
- * - Browse properties
- * - Create and manage bookings
- * - Apply for property manager role
+ * UserService — thin delegation layer.
+ * Business logic lives in src/services/user/.
+ * Controllers import this and call methods exactly as before.
  */
 class UserService {
-  /**
-   * Switch a user's role from one to another (e.g., user to manager) if they have been assigned the new role by admin
-   * @param {object} data
-   * @param {string} data.userId - ID of the user whose role is to be switched
-   * @param {'manager'|'user'} data.newRole - The new role to assign to the user
-   * @returns {Promise<object>} Updated user data and new JWT tokens
-   * @throws {ApiError} Throws ApiError for invalid role, insufficient permissions, or revoked roles
-   */
   async switchUserRole(data) {
     const { userId, newRole } = data;
 
-    // check if the user have been assigned the role
     const existingRole = await prisma.user_roles.findFirst({
-      where: {
-        user_id: userId,
-        roles: { name: newRole },
-      },
+      where: { user_id: userId, roles: { name: newRole } },
     });
 
     if (!existingRole) {
-      throw new ApiError(
-        403,
+      throw new ForbiddenError(
         `User have no permission to switch to ${newRole} role`
       );
     }
 
-    // check if the role is revoked
-
     if (existingRole.revoked_at) {
-      throw new ApiError(
-        403,
+      throw new ForbiddenError(
         `User's ${newRole} role has been revoked and cannot be switched to`
       );
     }
 
-    // get user
     const user = await prisma.users.findUnique({
       where: { id: userId },
       omit: { password_hash: true },
     });
 
-    // generate new token with the new role
-    const tokens = jwt.create({
-      userId: user.id,
-      activeRole: newRole,
-    });
+    const tokens = jwt.create({ userId: user.id, activeRole: newRole });
 
-    //   Return the new tokens and user info
     return {
       user,
       accessToken: tokens.accessToken,
@@ -79,630 +46,46 @@ class UserService {
     };
   }
 
-  /**
-   * Create a booking for a property
-   * @param {object} bookingData
-   * @param {string} bookingData.userId - ID of the booking user
-   * @param {string} bookingData.propertyId - ID of the property to book
-   * @param {number} bookingData.duration - Duration in units matching property pricing_unit
-   * @param {Date} bookingData.startDate - Start date of the booking
-   * @returns {Promise<object>} Created booking record
-   * @throws {ApiError} If property not found, not approved, or not available
-   */
-  async createBooking(bookingData) {
-    const { userId, propertyId, duration, startDate } = bookingData;
-
-    // Verify property exists
-    const property = await prisma.properties.findUnique({
-      where: { id: propertyId },
-    });
-    if (!property) {
-      throw new ApiError(404, 'Property not found');
-    }
-    // Ensure property is approved
-    if (property.approval_status !== property_approval_status.approved) {
-      throw new ApiError(400, 'Only approved property can be booked');
-    }
-
-    // Ensure property availability_status is available
-    if (
-      property.availability_status !== property_availability_status.available
-    ) {
-      throw new ApiError(400, 'Only available property can be booked');
-    }
-
-    // get it pricing unit and base price from property
-    const { pricing_unit, base_price } = property;
-
-    // use switch to go through the pricing_unit and determine duration and calculate end date
-
-    const endDate = calculateFutureDate({ pricing_unit, duration, startDate });
-
-    const proposedAmount = base_price * duration;
-
-    // create booking
-    const booking = await prisma.bookings.create({
-      data: {
-        user_id: userId,
-        property_id: propertyId,
-        start_date: startDate,
-        end_date: endDate,
-        proposed_amount: proposedAmount,
-      },
-      omit: { cancellation_reason: true, cancelled_at: true },
-    });
-
-    return booking;
+  createBooking(data) {
+    return bookingService.createBooking(data);
+  }
+  getUserBookings(filters) {
+    return bookingService.getUserBookings(filters);
+  }
+  getBookingById(data) {
+    return bookingService.getBookingById(data);
+  }
+  cancelBooking(data) {
+    return bookingService.cancelBooking(data);
   }
 
-  /**
-   * Retrieve bookings for a given user
-   * @param {object} filters - Query filters
-   * @param {number} [filters.page=1] - Page number
-   * @param {number} [filters.limit=ENV.LIMIT] - Items per page
-   * @param {string} [filters.from] - ISO start date to filter created_at
-   * @param {string} [filters.to] - ISO end date to filter created_at
-   * @param {'asc'|'desc'} [filters.order='desc'] - Sort order for created_at
-   * @param {string} filters.userId - ID of the user
-   * @param {'pending'|'approved'|'rejected'|'cancelled'|'expired'} filters.status - Booking status filter (optional)
-   * @returns {Promise<object>} Paginated response containing user's bookings
-   * @throws {ApiError} If no bookings are found for the user (404)
-   */
-  async getUserBookings(filters) {
-    const {
-      userId,
-      page = 1,
-      limit = ENV.LIMIT || 15,
-      from,
-      to,
-      order = OrderStatus.DESC,
-      status,
-    } = filters;
-
-    // Calculate pagination parameters
-    const { skip, take } = getPagination({ page, limit });
-
-    // Build query conditions
-    const where = {};
-
-    // Apply date range filter if provided
-    if (from || to) {
-      where.created_at = {};
-
-      if (from) where.created_at.gte = new Date(from);
-      if (to) where.created_at.lte = new Date(to);
-    }
-
-    // Apply user_id filter
-    where.user_id = userId;
-
-    // Apply status filter if provided
-    if (status) {
-      where.status = status;
-    }
-
-    const bookings = await prisma.bookings.findMany({
-      where,
-      orderBy: { created_at: order },
-      skip,
-      take,
-    });
-
-    // Get total count for pagination metadata
-    const total = await prisma.bookings.count({ where });
-
-    return buildPaginatedResponse({
-      data: bookings,
-      total,
-      page,
-      limit,
-    });
+  applyForManager(data) {
+    return managerApplicationService.applyForManager(data);
+  }
+  cancelManagerApplication(userId) {
+    return managerApplicationService.cancelManagerApplication(userId);
+  }
+  getLatestManagerApplication(userId) {
+    return managerApplicationService.getLatestManagerApplication(userId);
+  }
+  getManagerApplicationStatus(userId) {
+    return managerApplicationService.getManagerApplicationStatus(userId);
   }
 
-  /**
-   * Get a single booking by ID for a user
-   * @param {object} data
-   * @param {string} data.userId - ID of the user who owns the booking
-   * @throws {ApiError} If booking not found (404)
-   * @returns {Promise<object>} Booking object
-   */
-  async getBookingById(data) {
-    const { userId, bookingId } = data;
-
-    const booking = await prisma.bookings.findFirst({
-      where: {
-        id: bookingId,
-        user_id: userId,
-      },
-      include: {
-        rentals: true,
-        properties: {
-          select: {
-            address: true,
-            city: true,
-            base_price: true,
-            pricing_unit: true,
-            categories: true,
-            description: true,
-            id: true,
-          },
-        },
-      },
-    });
-
-    if (!booking) {
-      throw new ApiError(404, 'Booking not found');
-    }
-    return {
-      booking: {
-        id: booking.id,
-        user_id: booking.user_id,
-        property_id: booking.property_id,
-        start_date: booking.start_date,
-        end_date: booking.end_date,
-        proposed_amount: booking.proposed_amount,
-        status: booking.status,
-        cancellation_reason: booking.cancellation_reason,
-        cancelled_at: booking.cancelled_at,
-        created_at: booking.created_at,
-      },
-      property: booking.properties,
-      rental: booking.rentals,
-    };
+  getRental(data) {
+    return rentalService.getRental(data);
   }
-
-  /**
-   * Cancel a user's booking
-   * @param {object} data
-   * @param {string} data.userId - ID of the user who owns the booking
-   * @param {string} data.reason - Cancellation reason
-   * @param {string} data.bookingId - ID of the booking to cancel
-   * @throws {ApiError} If booking not found or already cancelled
-   */
-  async cancelBooking(data) {
-    const { userId, reason, bookingId } = data;
-    //    check for booking
-    const booking = await prisma.bookings.findFirst({
-      where: {
-        user_id: userId,
-        id: bookingId,
-      },
-    });
-
-    // see if it exist
-    if (!booking) {
-      throw new ApiError(404, 'Booking not found');
-    }
-
-    // see if it hasn't been canceled already
-    if (booking.cancellation_reason || booking.cancelled_at) {
-      throw new ApiError(400, 'Booking has already been cancelled');
-    }
-
-    // cancel it
-    await prisma.bookings.update({
-      where: { id: booking.id },
-      data: {
-        status: booking_status.cancelled,
-        cancellation_reason: reason,
-        cancelled_at: new Date(),
-      },
-    });
+  createInvoice(data) {
+    return rentalService.createInvoice(data);
   }
-
-  /**
-   * Submit an application to become a property manager
-   * @param {object} data
-   * @param {string} data.userId - ID of the applicant
-   * @param {string} data.reason - Reason for applying
-   * @returns {Promise<object>} Created application
-   * @throws {ApiError} If a pending application exists or user already a manager
-   */
-  async applyForManager(data) {
-    const { userId, reason } = data;
-
-    // check if there is no pending application
-    const existingApplication =
-      await prisma.property_manager_applications.findFirst({
-        where: {
-          user_id: userId,
-          status: manager_application_status.pending,
-        },
-      });
-    if (existingApplication) {
-      throw new ApiError(
-        400,
-        'You already have a pending property manager application'
-      );
-    }
-
-    // check if user isn't a property manager from the roles table
-    const roles = await prisma.user_roles.findMany({
-      where: { user_id: userId },
-      include: { roles: true },
-    });
-
-    const isManager = roles.some((ur) => ur.roles.name === UserRole.MANAGER);
-
-    if (isManager) {
-      throw new ApiError(400, 'You are already a property manager');
-    }
-
-    // create application
-    const application = await prisma.property_manager_applications.create({
-      data: { user_id: userId, reason },
-      omit: { reviewed_at: true, reviewed_by: true },
-    });
-    return application;
+  createCheckoutSession(data) {
+    return rentalService.createCheckoutSession(data);
   }
-
-  /**
-   * Cancel a pending manager application for a user
-   * @param {string} userId - ID of the user
-   * @throws {ApiError} If pending application not found
-   */
-  async cancelManagerApplication(userId) {
-    // check for pending application
-    const application = await prisma.property_manager_applications.findFirst({
-      where: {
-        user_id: userId,
-        status: manager_application_status.pending,
-      },
-    });
-
-    if (!application) {
-      throw new ApiError(404, 'Pending manager application not found');
-    }
-
-    // cancel the application
-    await prisma.property_manager_applications.update({
-      where: { id: application.id },
-      data: {
-        status: manager_application_status.cancelled,
-      },
-    });
+  getCheckoutSession(sessionId) {
+    return rentalService.getCheckoutSession(sessionId);
   }
-
-  /**
-   * Get the latest pending manager application for a user
-   * @param {string} userId - ID of the user
-   * @returns {Promise<object>} The pending application
-   * @throws {ApiError} If application not found or not pending
-   */
-  async getLatestManagerApplication(userId) {
-    const application = await prisma.property_manager_applications.findFirst({
-      where: { user_id: userId },
-      omit: { reviewed_at: true, reviewed_by: true },
-    });
-    if (!application) {
-      throw new ApiError(404, 'Property manager application not found');
-    }
-
-    if (application.status !== manager_application_status.pending) {
-      throw new ApiError(400, 'No pending property manager application found');
-    }
-    return application;
-  }
-
-  /**
-   * Retrieve status of the user's manager application
-   * @param {string} userId - ID of the user
-   * @returns {Promise<string>} Application status
-   * @throws {ApiError} If application not found
-   */
-  async getManagerApplicationStatus(userId) {
-    const application = await prisma.property_manager_applications.findFirst({
-      where: { user_id: userId },
-      select: { status: true },
-    });
-    if (!application) {
-      throw new ApiError(404, 'Property manager application not found');
-    }
-    return { status: application.status };
-  }
-
-  /**
-   * Retrieve rental of the user's booking
-   * @param {object} data
-   * @param {string} data.userId - ID of the user who owns the booking
-   * @param {string} data.rentalId - ID of the rental
-   * @returns {Promise<object>}
-   * @throws {ApiError} If rental not found
-   */
-  async getRental(data) {
-    const { userId, rentalId } = data;
-
-    const rental = await prisma.rentals.findUnique({
-      where: { id: rentalId, user_id: userId },
-      include: {
-        invoices: true,
-        payment_schedules: {
-          where: {
-            rental_id: rentalId,
-          },
-          orderBy: { due_date: 'asc' },
-        },
-      },
-    });
-    if (!rental) {
-      throw new ApiError(404, 'Rental not found');
-    }
-
-    return {
-      id: rental.id,
-      user_id: rental.user_id,
-      status: rental.status,
-      created_at: rental.created_at,
-      booking_id: rental.booking_id,
-      property_id: rental.property_id,
-      lease_start: rental.lease_start,
-      lease_end: rental.lease_end,
-      pricing_unit: rental.pricing_unit,
-      agreed_price: rental.agreed_price,
-      payment_schedules: rental.payment_schedules,
-      invoices: rental.invoices,
-    };
-  }
-
-  /**
-   * Creates Installment invoice
-   * @param {string} rentalId - ID of the rental
-   * @returns {Promise<object>}
-   */
-  async createInstallmentInvoice(rentalId) {
-    const schedule = await prisma.payment_schedules.findFirst({
-      where: {
-        rental_id: rentalId,
-        status: 'pending',
-      },
-      orderBy: { due_date: 'asc' },
-    });
-
-    if (!schedule) throw new ApiError(404, 'No unpaid schedules');
-
-    return await prisma.$transaction(async (tx) => {
-      const invoice = await tx.invoices.create({
-        data: {
-          rental_id: rentalId,
-          total_amount: schedule.amount,
-        },
-      });
-
-      await tx.invoice_schedules.create({
-        data: {
-          invoice_id: invoice.id,
-          schedule_id: schedule.id,
-          allocated_amount: schedule.amount,
-        },
-      });
-
-      return invoice;
-    });
-  }
-
-  /**
-   * Creates Installment invoice
-   * @param {string} rentalId - ID of the rental
-   * @returns {Promise<object>}
-   */
-  async createFullSettlementInvoice(rentalId) {
-    const schedules = await prisma.payment_schedules.findMany({
-      where: {
-        rental_id: rentalId,
-        status: 'pending',
-      },
-    });
-
-    if (!schedules.length) throw new Error('Nothing to settle');
-
-    const total = schedules.reduce((sum, s) => sum + Number(s.amount), 0);
-
-    return await prisma.$transaction(async (tx) => {
-      const invoice = await tx.invoices.create({
-        data: {
-          rental_id: rentalId,
-          total_amount: total,
-        },
-      });
-
-      for (const schedule of schedules) {
-        await tx.invoice_schedules.create({
-          data: {
-            invoice_id: invoice.id,
-            schedule_id: schedule.id,
-            allocated_amount: schedule.amount,
-          },
-        });
-      }
-
-      return invoice;
-    });
-  }
-
-  /**
-   * Creates invoice
-   * @param {object} data
-   * @param {string} data.rentalId - ID of the rental
-   * @param {string} data.userId - ID of the user
-   * @param {'full'|'installment'} data.paymentMode - Mode of payment
-   * @returns {Promise<string>} Application status
-   * @throws {ApiError} If application not found
-   */
-  async createInvoice(data) {
-    const { rentalId, userId, paymentMode } = data;
-
-    // check for existing invoice for the rental
-
-    const existingInvoice = await prisma.invoices.findFirst({
-      where: { rental_id: rentalId, status: 'pending' },
-    });
-
-    if (existingInvoice) {
-      throw new ApiError(400, 'Invoice already exists for this rental');
-    }
-
-    const rental = await prisma.rentals.findFirst({
-      where: { id: rentalId, user_id: userId },
-    });
-
-    if (!rental) {
-      throw new ApiError(404, 'Rental not found');
-    }
-
-    if (rental.status == rental_status.terminated) {
-      throw new ApiError(400, 'Rental terminated');
-    }
-
-    if (paymentMode === PaymentMode.FULL) {
-      this.createFullSettlementInvoice(rentalId);
-    } else {
-      this.createInstallmentInvoice(rentalId);
-    }
-  }
-
-  /**
-   * Initiates Stripe Checkout Session for invoice payment
-   * @param {object} data
-   * @param {string} data.rentalId - ID of the rental
-   * @param {string} data.userId - ID of the user
-   * @returns {Promise<object>} Stripe session object
-   */
-  async createCheckoutSession(data) {
-    const { invoiceId, userId } = data;
-    const invoice = await prisma.invoices.findFirst({
-      where: {
-        id: invoiceId,
-        status: 'pending',
-        rentals: {
-          user_id: userId,
-        },
-      },
-    });
-
-    if (!invoice) throw new ApiError(404, 'Pending invoice not found');
-
-    // Stripe session creation for payment
-    const session = await stripe.checkout.sessions.create({
-      mode: 'payment',
-      payment_method_types: ['card'],
-      line_items: [
-        {
-          price_data: {
-            currency: 'ngn',
-            product_data: {
-              name: `Rental Invoice ${invoice.id}`,
-            },
-            unit_amount: invoice.total_amount * 100,
-          },
-          quantity: 1,
-        },
-      ],
-      success_url: `${ENV.FRONTEND_URL}/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${ENV.FRONTEND_URL}/payment-cancelled`,
-      metadata: {
-        invoice_id: invoice.id,
-        rental_id: invoice.rental_id,
-        user_id: invoice.user_id,
-      },
-    });
-
-    // Store session ID for later reference
-    await prisma.invoices.update({
-      where: { id: invoice.id },
-      data: {
-        stripe_checkout_session_id: session.id,
-        stripe_payment_intent_id: session.payment_intent,
-      },
-    });
-    return session;
-  }
-
-  /**
-   * Retrieves a Stripe Checkout Session by session ID
-   * @param {string} sessionId - Stripe session ID
-   * @returns {Promise<object>} Stripe session object
-   */
-  async getCheckoutSession(sessionId) {
-    return await stripe.checkout.sessions.retrieve(sessionId);
-  }
-
-  /**
-   * Retrieves payment history for a user with pagination and optional date filtering
-   * @param {object} data
-   * @param {string} data.userId - ID of the user
-   * @param {number} [data.page=1] - Page number for pagination
-   * @param {number} [data.limit=ENV.LIMIT] - Number of items per page
-   * @param {string} [data.from] - ISO start date to filter payments
-   * @param {string} [data.to] - ISO end date to filter payments
-   * @param {'desc'| 'asc'} [data.order='desc'] - Sort order for payment date
-   * @returns {Promise<object>} Paginated response containing payment history
-   */
-  async getUserPaymentHistory(data) {
-    const {
-      userId,
-      page = 1,
-      limit = ENV.LIMIT || 15,
-      from,
-      to,
-      order = OrderStatus.DESC,
-    } = data;
-
-    const where = {};
-
-    const { skip, take } = getPagination({ page, limit });
-
-    if (from || to) {
-      where.created_at = {};
-      if (from) where.created_at.gte = new Date(from);
-      if (to) where.created_at.lte = new Date(to);
-    }
-
-    const payments = await prisma.payments.findMany({
-      where: {
-        ...where,
-        payment_status: payment_status.successful,
-        invoices: {
-          rentals: {
-            user_id: userId,
-          },
-        },
-      },
-      include: {
-        invoices: {
-          include: {
-            rentals: {
-              include: {
-                properties: {
-                  select: { title: true, city: true, state: true, id: true },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { created_at: order },
-      skip,
-      take,
-    });
-
-    const formattedPayments = payments.map((p) => ({
-      payment_id: p.id,
-      amount: p.amount,
-      paid_at: p.paid_at,
-      property_id: p.invoices.rentals.properties.id,
-      property_title: p.invoices.rentals.properties.title,
-      city: p.invoices.rentals.properties.city,
-      state: p.invoices.rentals.properties.state,
-    }));
-
-    const total = await prisma.invoices.count({ where });
-
-    return buildPaginatedResponse({
-      data: formattedPayments,
-      total,
-      page,
-      limit,
-    });
+  getUserPaymentHistory(data) {
+    return rentalService.getUserPaymentHistory(data);
   }
 }
 
