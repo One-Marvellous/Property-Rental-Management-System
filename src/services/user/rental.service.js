@@ -1,18 +1,8 @@
 import { prisma } from '../../config/db.js';
-import {
-  AppError,
-  BadRequestError,
-  NotFoundError,
-} from '../../shared/errors/index.js';
+import { BadRequestError, NotFoundError } from '../../shared/errors/index.js';
 import { ENV } from '../../config/env.js';
 import {
-  buildPaginatedResponse,
-  getPagination,
-} from '../../utils/pagination.js';
-import { OrderStatus } from '../../models/order.js';
-import {
   rental_status,
-  payment_status,
   schedule_status,
   invoice_status,
 } from '../../generated/prisma/index.js';
@@ -122,11 +112,11 @@ class RentalService {
   async createInvoice(data) {
     const { rentalId, userId, paymentMode } = data;
 
-    const existingPending = await prisma.payments.findFirst({
-      where: { rental_id: rentalId, payment_status: payment_status.pending },
+    const existingInvoice = await prisma.invoices.findFirst({
+      where: { rental_id: rentalId, status: invoice_status.pending },
     });
 
-    if (existingPending)
+    if (existingInvoice)
       throw new BadRequestError('Invoice already exists for this rental');
 
     const rental = await prisma.rentals.findFirst({
@@ -149,7 +139,7 @@ class RentalService {
   async createCheckoutSession(data) {
     const { invoiceId, userId } = data;
 
-    const invoice = await prisma.payments.findFirst({
+    const invoice = await prisma.invoices.findFirst({
       where: {
         id: invoiceId,
         status: invoice_status.pending,
@@ -160,8 +150,6 @@ class RentalService {
     });
 
     if (!invoice) throw new NotFoundError('Pending invoice not found');
-    if (!stripe)
-      throw new AppError('Stripe is not configured on this server', 503);
 
     const session = await stripe.checkout.sessions.create({
       mode: 'payment',
@@ -195,83 +183,6 @@ class RentalService {
     });
 
     return session;
-  }
-
-  async getUserPaymentHistory(data) {
-    const {
-      userId,
-      page = 1,
-      limit = ENV.LIMIT || 15,
-      from,
-      to,
-      order = OrderStatus.DESC,
-    } = data;
-
-    const { skip, take } = getPagination({ page, limit });
-    const where = {};
-
-    if (from || to) {
-      where.created_at = {};
-      if (from) where.created_at.gte = new Date(from);
-      if (to) where.created_at.lte = new Date(to);
-    }
-
-    const payments = await prisma.payments.findMany({
-      where: {
-        ...where,
-        payment_status: payment_status.successful,
-        invoices: {
-          rentals: {
-            user_id: userId,
-          },
-        },
-      },
-      include: {
-        invoices: {
-          include: {
-            rentals: {
-              include: {
-                properties: {
-                  select: { title: true, city: true, state: true, id: true },
-                },
-              },
-            },
-          },
-        },
-      },
-      orderBy: { created_at: order },
-      skip,
-      take,
-    });
-
-    const formattedPayments = payments.map((p) => ({
-      payment_id: p.id,
-      amount: p.amount,
-      paid_at: p.paid_at,
-      property_id: p.invoices.rentals.properties.id,
-      property_title: p.invoices.rentals.properties.title,
-      city: p.invoices.rentals.properties.city,
-      state: p.invoices.rentals.properties.state,
-    }));
-
-    const total = await prisma.payments.count({
-      where: {
-        ...where,
-        payment_status: payment_status.successful,
-        invoices: {
-          rentals: {
-            user_id: userId,
-          },
-        },
-      },
-    });
-
-    return buildPaginatedResponse({
-      data: formattedPayments,
-      total,
-      page,
-      limit,
-    });
   }
 }
 

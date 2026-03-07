@@ -42,3 +42,6 @@ Thumbs.db
 # Generated prisma files
 /src/generated/prisma
 /scripts
+
+# Local images
+uploads/

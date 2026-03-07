@@ -192,7 +192,7 @@ class UserController {
   async createCheckoutSession(req, res, next) {
     try {
       const userId = req.user.userId;
-      const invoiceId = req.body.invoiceId;
+      const invoiceId = req.params.id;
 
       const session = await userService.createCheckoutSession({
         invoiceId,

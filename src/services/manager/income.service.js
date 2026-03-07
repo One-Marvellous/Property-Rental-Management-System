@@ -5,7 +5,7 @@ class ManagerIncomeService {
     const managerIncome = await prisma.property_earnings.groupBy({
       by: ['property_id'],
       where: {
-        property: {
+        properties: {
           manager_id: managerId,
         },
       },

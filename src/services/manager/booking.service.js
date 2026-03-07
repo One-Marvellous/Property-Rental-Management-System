@@ -41,6 +41,11 @@ class ManagerBookingService {
       skip,
       take,
       orderBy: { created_at: order },
+      omit: {
+        expires_at: true,
+        cancelled_at: true,
+        cancellation_reason: true,
+      },
     });
 
     const total = await prisma.bookings.count({
@@ -56,6 +61,7 @@ class ManagerBookingService {
     const booking = await prisma.bookings.findFirst({
       where: { id: bookingId, properties: { manager_id: userId } },
       include: {
+        rentals: true,
         users: {
           select: {
             first_name: true,
@@ -81,6 +87,7 @@ class ManagerBookingService {
       created_at: booking.created_at,
       user: booking.users,
       property: booking.properties,
+      rental: booking.rentals,
     };
   }
 

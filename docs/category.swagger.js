@@ -46,7 +46,7 @@ export default {
             'application/json': {
               schema: {
                 type: 'object',
-                required: ['name', 'description'],
+                required: ['name'],
                 properties: {
                   name: { type: 'string', example: 'Apartment' },
                   description: {

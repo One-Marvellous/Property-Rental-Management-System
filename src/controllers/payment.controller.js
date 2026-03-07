@@ -1,6 +1,6 @@
 import { ENV } from '../config/env.js';
 import stripe from '../config/stripe.js';
-import transactionService from '../services/payment.service.js';
+import paymentService from '../services/payment.service.js';
 import logger from '../config/logger.js';
 import { ApiResponse } from '../utils/apiResponse.js';
 import { SuccessMessages } from '../shared/messages/SuccessMessages.js';
@@ -29,7 +29,7 @@ class PaymentController {
 
     switch (event.type) {
       case 'checkout.session.completed':
-        await transactionService.processPaymentTransaction(event);
+        await paymentService.processPaymentTransaction(event);
         break;
       default:
         logger.warn(`Unhandled Stripe event type: ${event.type}`);
@@ -42,9 +42,11 @@ class PaymentController {
     try {
       const { id } = req.params;
 
-      await transactionService.verifyPayment(id);
+      const data = await paymentService.verifyPayment(id);
 
-      res.status(200).json(new ApiResponse(true, 'Verification successful'));
+      res
+        .status(200)
+        .json(new ApiResponse(true, 'Verification successful', data));
     } catch (error) {
       next(error);
     }
@@ -54,18 +56,18 @@ class PaymentController {
     try {
       const { session_id } = req.query;
 
-      const session = await transactionService.getCheckoutSession(session_id);
+      const session = await paymentService.getCheckoutSession(session_id);
 
       const summary = {
         status: session.status,
-        paymentStatus: session.payment_status,
-        amountTotal: session.amount_total / 100,
+        payment_status: session.payment_status,
+        amount_total: session.amount_total / 100,
         currency: session.currency.toUpperCase(),
-        customerEmail: session.customer_details?.email ?? null,
-        customerName: session.customer_details?.name ?? null,
-        paymentId: session.metadata?.payment_id ?? null,
-        rentalId: session.metadata?.rental_id ?? null,
-        paymentIntent: session.payment_intent ?? null,
+        customer_email: session.customer_details?.email ?? null,
+        customer_name: session.customer_details?.name ?? null,
+        invoice_id: session.metadata?.payment_id ?? null,
+        rental_id: session.metadata?.rental_id ?? null,
+        payment_intent: session.payment_intent ?? null,
       };
 
       const { statusCode, message } = SuccessMessages.USER.PAYMENT_SUCCESS;

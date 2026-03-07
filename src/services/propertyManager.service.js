@@ -1,40 +1,46 @@
 import managerPropertyService from './manager/property.service.js';
 import managerBookingService from './manager/booking.service.js';
 import managerIncomeService from './manager/income.service.js';
+import managerRentalService from './manager/rental.service.js';
 
 class PropertyManagerService {
-  addProperty(d) {
-    return managerPropertyService.addProperty(d);
+  addProperty(data) {
+    return managerPropertyService.addProperty(data);
   }
-  publishProperty(d) {
-    return managerPropertyService.publishProperty(d);
+  publishProperty(data) {
+    return managerPropertyService.publishProperty(data);
   }
-  editProperty(d) {
-    return managerPropertyService.editProperty(d);
+  editProperty(data) {
+    return managerPropertyService.editProperty(data);
   }
-  removeProperty(d) {
-    return managerPropertyService.removeProperty(d);
+  removeProperty(data) {
+    return managerPropertyService.removeProperty(data);
   }
-  getUserProperty(d) {
-    return managerPropertyService.getUserProperty(d);
+  getUserProperty(data) {
+    return managerPropertyService.getUserProperty(data);
   }
-  addPropertyImages(d) {
-    return managerPropertyService.addPropertyImages(d);
+  addPropertyImages(data) {
+    return managerPropertyService.addPropertyImages(data);
   }
-  removePropertyImage(d) {
-    return managerPropertyService.removePropertyImage(d);
+  removePropertyImage(data) {
+    return managerPropertyService.removePropertyImage(data);
   }
-  getAllBookings(d) {
-    return managerBookingService.getAllBookings(d);
+  getAllBookings(data) {
+    return managerBookingService.getAllBookings(data);
   }
-  viewBookingDetails(d) {
-    return managerBookingService.viewBookingDetails(d);
+  viewBookingDetails(data) {
+    return managerBookingService.viewBookingDetails(data);
   }
-  approveBooking(d) {
-    return managerBookingService.approveBooking(d);
+
+  getRental(data) {
+    return managerRentalService.getRental(data);
   }
-  rejectBooking(d) {
-    return managerBookingService.rejectBooking(d);
+
+  approveBooking(data) {
+    return managerBookingService.approveBooking(data);
+  }
+  rejectBooking(data) {
+    return managerBookingService.rejectBooking(data);
   }
   getIncome(managerId) {
     return managerIncomeService.getIncome(managerId);

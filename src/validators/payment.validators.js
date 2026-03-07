@@ -6,8 +6,8 @@ import { z } from 'zod';
  */
 export const sessionIdParamValidator = z.object({
   body: z.object({}).strict().optional(),
-  query: z.object({
+  query: z.object({}).optional(),
+  params: z.object({
     id: z.string().min(1, 'id is required'),
   }),
-  params: z.object({}).optional(),
 });

@@ -567,15 +567,6 @@ export default {
           'Total income collected from each property across all successful rentals.',
         tags: ['Admin'],
         security: [{ BearerAuth: [] }],
-        parameters: [
-          {
-            in: 'path',
-            name: 'id',
-            required: true,
-            schema: { type: 'string' },
-            description: 'Property ID',
-          },
-        ],
         responses: {
           200: {
             description: 'Income data.',
@@ -604,7 +595,11 @@ export default {
                                 type: 'string',
                                 example: 'mgr_1234567890',
                               },
-                              total_platform_fee: {
+                              admin_income: {
+                                type: 'number',
+                                example: 500,
+                              },
+                              gross_revenue: {
                                 type: 'number',
                                 example: 5000,
                               },

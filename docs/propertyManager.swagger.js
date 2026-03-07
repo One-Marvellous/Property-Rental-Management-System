@@ -374,7 +374,7 @@ export default {
             name: 'order',
             schema: {
               type: 'string',
-              enum: [Object.values(OrderStatus)],
+              enum: Object.values(OrderStatus),
               default: OrderStatus.DESC,
             },
           },
@@ -445,7 +445,7 @@ export default {
             name: 'order',
             schema: {
               type: 'string',
-              enum: [Object.values(OrderStatus)],
+              enum: Object.values(OrderStatus),
               example: OrderStatus.DESC,
             },
             description: 'Sort order by creation date',
@@ -601,6 +601,42 @@ export default {
           },
           404: {
             description: 'Booking not found or not under your management',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/ErrorResponse' },
+              },
+            },
+          },
+        },
+      },
+    },
+
+    '/api/v1/manager/rentals/{id}': {
+      get: {
+        summary: 'Get rental details',
+        description: 'Returns a rental record with its full payment history.',
+        tags: ['Property Manager'],
+        security: [{ BearerAuth: [] }],
+        parameters: [
+          {
+            in: 'path',
+            name: 'id',
+            required: true,
+            schema: { type: 'string' },
+            description: 'Rental ID',
+          },
+        ],
+        responses: {
+          200: {
+            description: 'Rental details',
+            content: {
+              'application/json': {
+                schema: { $ref: '#/components/schemas/Rental' },
+              },
+            },
+          },
+          404: {
+            description: 'Rental not found',
             content: {
               'application/json': {
                 schema: { $ref: '#/components/schemas/ErrorResponse' },
