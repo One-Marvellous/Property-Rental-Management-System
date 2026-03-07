@@ -6,6 +6,7 @@ import { jwt } from '../config/jwt.js';
 import bookingService from './user/booking.service.js';
 import managerApplicationService from './user/managerApplication.service.js';
 import rentalService from './user/rental.service.js';
+import incomeService from './user/income.service.js';
 
 /**
  * UserService — thin delegation layer.
@@ -34,13 +35,13 @@ class UserService {
 
     const user = await prisma.users.findUnique({
       where: { id: userId },
-      omit: { password_hash: true },
+      omit: { password_hash: true, deleted_at: true },
     });
 
     const tokens = jwt.create({ userId: user.id, activeRole: newRole });
 
     return {
-      user,
+      user: { ...user, activeRole: newRole },
       accessToken: tokens.accessToken,
       refreshToken: tokens.refreshToken,
     };
@@ -91,7 +92,7 @@ class UserService {
   }
 
   getUserPaymentHistory(data) {
-    return rentalService.getUserPaymentHistory(data);
+    return incomeService.getUserPaymentHistory(data);
   }
 }
 

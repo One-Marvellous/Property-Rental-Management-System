@@ -83,8 +83,19 @@ class PropertyService {
     const property = await prisma.properties.findUnique({
       where: { id: propertyId },
       include: {
+        categories: {
+          select: { id: true, description: true, name: true },
+        },
+        property_images: {
+          select: { id: true, image_url: true, property_id: true },
+        },
         users_properties_manager_idTousers: {
-          omit: { created_at: true, password_hash: true, is_suspended: true },
+          omit: {
+            created_at: true,
+            password_hash: true,
+            deleted_at: true,
+            status: true,
+          },
         },
       },
     });
@@ -92,25 +103,20 @@ class PropertyService {
     if (!property) throw new NotFoundError('Property');
 
     return {
+      id: property.id,
+      created_at: property.created_at,
+      description: property.description,
+      title: property.title,
+      address: property.address,
+      city: property.city,
+      state: property.state,
+      pricing_unit: property.pricing_unit,
+      base_price: property.base_price,
+      approval_status: property.approval_status,
+      availability_status: property.availability_status,
+      category: property.categories,
       manager: property.users_properties_manager_idTousers,
-      property: {
-        id: property.id,
-        created_at: property.created_at,
-        description: property.description,
-        title: property.title,
-        address: property.address,
-        city: property.city,
-        state: property.state,
-        pricing_unit: property.pricing_unit,
-        base_price: property.base_price,
-        approval_status: property.approval_status,
-        availability_status: property.availability_status,
-        category_id: property.category_id,
-        manager_id: property.manager_id,
-        approved_by: property.approved_by,
-        approved_at: property.approved_at,
-        rejection_reason: property.rejection_reason,
-      },
+      images: property.property_images,
     };
   }
 }

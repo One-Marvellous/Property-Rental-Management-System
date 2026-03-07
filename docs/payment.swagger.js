@@ -1,7 +1,7 @@
 export default {
   paths: {
-    '/api/v1/payment/verify/{id}/': {
-      get: {
+    '/payment/verify/{id}/': {
+      post: {
         summary: 'Verify a payment using stripe session id',
         description: 'Verifies a stripe payment and update the tables',
         tags: ['Payment'],
@@ -20,7 +20,7 @@ export default {
             description: 'Verification successful',
             content: {
               'application/json': {
-                schema: { $ref: '#/components/schemas/ApiResponse' },
+                schema: { $ref: '#/components/schemas/VerifyPaymentResponse' },
               },
             },
           },

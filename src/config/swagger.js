@@ -171,6 +171,9 @@ const swaggerOptions = {
             status: { type: 'string' },
             stripe_checkout_session_id: { type: 'string' },
             stripe_payment_intent_id: { type: 'string' },
+            due_date: { type: 'string', format: 'date-time' },
+            paid_at: { type: 'string', format: 'date-time' },
+            created_at: { type: 'string', format: 'date-time' },
           },
         },
         PaymentSchedule: {
@@ -255,6 +258,7 @@ const swaggerOptions = {
                   properties: {
                     booking: { $ref: '#/components/schemas/Booking' },
                     property: { $ref: '#/components/schemas/Property' },
+                    rental: { $ref: '#/components/schemas/Rental' },
                   },
                 },
               },
@@ -290,6 +294,7 @@ const swaggerOptions = {
                     created_at: { type: 'string', format: 'date-time' },
                     user: { $ref: '#/components/schemas/User' },
                     property: { $ref: '#/components/schemas/Property' },
+                    rental: { $ref: '#/components/schemas/Rental' },
                   },
                 },
               },
@@ -306,8 +311,55 @@ const swaggerOptions = {
                 data: {
                   type: 'object',
                   properties: {
-                    manager: { $ref: '#/components/schemas/User' },
-                    property: { $ref: '#/components/schemas/Property' },
+                    id: { type: 'string' },
+                    title: { type: 'string' },
+                    description: { type: 'string' },
+                    address: { type: 'string' },
+                    city: { type: 'string' },
+                    state: { type: 'string' },
+                    pricing_unit: {
+                      type: 'string',
+                      enum: Object.values(pricing_unit),
+                    },
+                    base_price: { type: 'number', format: 'float' },
+                    approval_status: {
+                      type: 'string',
+                      enum: Object.values(property_approval_status),
+                    },
+                    availability_status: {
+                      type: 'string',
+                      enum: Object.values(property_availability_status),
+                    },
+                    created_at: { type: 'string', format: 'date-time' },
+                    category: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        description: { type: 'string' },
+                        name: { type: 'string' },
+                      },
+                    },
+                    manager: {
+                      type: 'object',
+                      properties: {
+                        id: { type: 'string' },
+                        first_name: { type: 'string' },
+                        last_name: { type: 'string' },
+                        email: { type: 'string' },
+                        phone_number: { type: 'string' },
+                      },
+                    },
+                    images: {
+                      type: 'array',
+                      items: {
+                        type: 'object',
+                        properties: {
+                          id: { type: 'string' },
+                          image_url: { type: 'string' },
+                          property_id: { type: 'string' },
+                        },
+                      },
+                    },
                   },
                 },
               },
@@ -424,6 +476,34 @@ const swaggerOptions = {
             city: { type: 'string', example: 'New York' },
             state: { type: 'string', example: 'NY' },
           },
+        },
+
+        VerifyPaymentResponse: {
+          allOf: [
+            { $ref: '#/components/schemas/ApiResponse' },
+            {
+              type: 'object',
+              properties: {
+                data: {
+                  type: 'object',
+                  properties: {
+                    status: { type: 'string', example: 'complete' },
+                    payment_status: { type: 'string', example: 'paid' },
+                    amount_total: { type: 'integer', example: 25000 },
+                    currency: { type: 'string', example: 'NGN' },
+                    customer_email: {
+                      type: 'string',
+                      example: 'user3@example.com',
+                    },
+                    customer_name: { type: 'string', example: 'John Doe' },
+                    invoice_id: { type: 'string' },
+                    rental_id: { type: 'string' },
+                    payment_intent: { type: 'string' },
+                  },
+                },
+              },
+            },
+          ],
         },
 
         /** ---------------- PAGINATION ---------------- */

@@ -73,6 +73,7 @@ export const addPropertyValidator = z.object({
  * (no request body required)
  */
 export const publishPropertyValidator = idParamSchema;
+export const getRentalValidator = idParamSchema;
 export const removePropertyValidator = idParamSchema;
 export const approveBookingValidator = idParamSchema;
 export const rejectBookingValidator = idParamSchema;

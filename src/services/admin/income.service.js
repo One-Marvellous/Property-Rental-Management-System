@@ -2,38 +2,32 @@ import { prisma } from '../../config/db.js';
 
 class AdminIncomeService {
   async getIncomePerProperty() {
-    const successfulPayments = await prisma.payments.findMany({
-      where: { payment_status: 'successful' },
-      select: {
-        amount: true,
-        rentals: {
-          select: {
-            property_id: true,
-            properties: { select: { title: true, manager_id: true } },
-          },
-        },
+    const earnings = await prisma.property_earnings.groupBy({
+      by: ['property_id'],
+      _sum: {
+        platform_fee: true,
+        gross_amount: true,
       },
     });
 
-    const byProperty = new Map();
-    for (const payment of successfulPayments) {
-      const propertyId = payment.rentals?.property_id;
-      if (!propertyId) continue;
-      const existing = byProperty.get(propertyId);
-      if (existing) {
-        existing.total_income =
-          Number(existing.total_income) + Number(payment.amount);
-      } else {
-        byProperty.set(propertyId, {
-          property_id: propertyId,
-          property_title: payment.rentals.properties?.title ?? null,
-          manager_id: payment.rentals.properties?.manager_id ?? null,
-          total_income: Number(payment.amount),
+    const result = await Promise.all(
+      earnings.map(async (e) => {
+        const property = await prisma.properties.findUnique({
+          where: { id: e.property_id },
+          select: { title: true, manager_id: true },
         });
-      }
-    }
 
-    return Array.from(byProperty.values());
+        return {
+          property_id: e.property_id,
+          property_title: property?.title,
+          manager_id: property?.manager_id,
+          admin_income: e._sum.platform_fee,
+          gross_revenue: e._sum.gross_amount,
+        };
+      })
+    );
+
+    return result;
   }
 }
 

@@ -212,6 +212,17 @@ class ManagerPropertyService {
       skip,
       take,
       orderBy: { created_at: order },
+      omit: {
+        rejection_reason: true,
+        rejected_by: true,
+        rejected_at: true,
+        suspended_by: true,
+        suspended_at: true,
+        deleted_at: true,
+        approved_by: true,
+        approved_at: true,
+        created_at: true,
+      },
     });
 
     const total = await prisma.properties.count({ where });

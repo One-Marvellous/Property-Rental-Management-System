@@ -214,6 +214,21 @@ class PropertyManagerController {
     }
   }
 
+  async getRental(req, res, next) {
+    try {
+      const userId = req.user.userId;
+      const rentalId = req.params.id;
+      const result = await managerService.getRental({
+        userId,
+        rentalId,
+      });
+      const { statusCode, message } = SuccessMessages.USER.RENTAL_FETCHED;
+      res.status(statusCode).json(new ApiResponse(true, message, result));
+    } catch (error) {
+      next(error);
+    }
+  }
+
   async deletePropertyImage(req, res, next) {
     try {
       const userId = req.user.userId;

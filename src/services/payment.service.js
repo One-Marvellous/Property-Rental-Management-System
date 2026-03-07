@@ -12,12 +12,19 @@ class PaymentService {
   async processPaymentTransaction(stripeEvent) {
     // Extract relevant info from Stripe event
     const session = stripeEvent.data.object;
-    const invoiceId = session.metadata.invoice_id;
+    const invoiceId = session.metadata.payment_id;
     const rentalId = session.metadata.rental_id;
     const paymentIntentId = session.payment_intent;
 
     // Transactional update payment, invoice, schedules, rental
     await prisma.$transaction(async (tx) => {
+      // check if it is recorded
+      const foundPayment = await tx.payments.findUnique({
+        where: { stripe_charge_id: paymentIntentId },
+      });
+
+      if (foundPayment) return;
+
       await tx.payments.create({
         data: {
           invoice_id: invoiceId,
@@ -56,12 +63,10 @@ class PaymentService {
   }
 
   async verifyPayment(sessionId) {
-    const session = await stripe.checkout.sessions.retrieve(sessionId, {
-      expand: ['payment_intent'],
-    });
+    const session = await stripe.checkout.sessions.retrieve(sessionId);
 
     if (session.payment_status !== 'paid') {
-      return new AppError('Payment not completed', 400);
+      throw new AppError('Payment not completed', 400);
     }
 
     await this.processPaymentTransaction({
@@ -69,6 +74,20 @@ class PaymentService {
       type: 'checkout.session.completed',
       data: { object: session },
     });
+
+    const summary = {
+      status: session.status,
+      payment_status: session.payment_status,
+      amount_total: session.amount_total / 100,
+      currency: session.currency.toUpperCase(),
+      customer_email: session.customer_details?.email ?? null,
+      customer_name: session.customer_details?.name ?? null,
+      invoice_id: session.metadata?.payment_id ?? null,
+      rental_id: session.metadata?.rental_id ?? null,
+      payment_intent: session.payment_intent ?? null,
+    };
+
+    return summary;
   }
 
   async getCheckoutSession(sessionId) {

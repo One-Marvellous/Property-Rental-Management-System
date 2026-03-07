@@ -543,23 +543,6 @@ export default {
             description: 'Invoice ID',
           },
         ],
-        requestBody: {
-          required: true,
-          content: {
-            'application/json': {
-              schema: {
-                type: 'object',
-                required: ['invoiceId'],
-                properties: {
-                  invoiceId: {
-                    type: 'string',
-                    description: 'ID of the pending payment/invoice to pay',
-                  },
-                },
-              },
-            },
-          },
-        },
         responses: {
           200: {
             description:

@@ -5,12 +5,12 @@ import {
   authorizeRoles,
 } from '../middlewares/auth.middleware.js';
 import { zodValidation } from '../middlewares/zodValidation.middleware.js';
+import { UserRole } from '../models/roles.js';
 import {
+  idParamValidator,
   createCategoryValidator,
   editCategoryValidator,
-} from '../validators/admin.validators.js';
-import { UserRole } from '../models/roles.js';
-import { idParamValidator } from '../validators/category.validator.js';
+} from '../validators/category.validator.js';
 
 const router = Router();
 

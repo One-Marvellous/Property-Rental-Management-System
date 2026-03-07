@@ -92,7 +92,7 @@ class AuthService {
     const user = await prisma.users.findUnique({
       where: { email },
       include: {
-        user_roles_user_roles_user_idTousers: {
+        user_roles: {
           where: { revoked_at: null },
           include: { roles: true },
         },
@@ -121,9 +121,7 @@ class AuthService {
       throw new ForbiddenError('Account deactivated');
     }
 
-    const roleNames = user.user_roles_user_roles_user_idTousers.map(
-      (ur) => ur.roles.name
-    );
+    const roleNames = user.user_roles.map((ur) => ur.roles.name);
     const activeRole = resolveUserRole(roleNames);
 
     const tokens = jwt.create({

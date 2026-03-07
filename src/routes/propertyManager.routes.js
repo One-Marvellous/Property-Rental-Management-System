@@ -17,6 +17,7 @@ import {
   approveBookingValidator,
   rejectBookingValidator,
   deleteImageValidator,
+  getRentalValidator,
 } from '../validators/propertyManager.validators.js';
 import { uploadMultipleImages } from '../middlewares/upload.middleware.js';
 
@@ -76,6 +77,12 @@ router.patch(
   '/bookings/:id/reject',
   zodValidation(rejectBookingValidator),
   managerController.rejectBooking
+);
+
+router.get(
+  '/rentals/:id',
+  zodValidation(getRentalValidator),
+  managerController.getRental
 );
 
 router.post(

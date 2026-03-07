@@ -4,35 +4,38 @@ import adminPropertiesService from './admin/properties.service.js';
 import adminIncomeService from './admin/income.service.js';
 
 class AdminService {
-  getAllUsers(f) {
-    return adminUsersService.getAllUsers(f);
+  getAllUsers(filters) {
+    return adminUsersService.getAllUsers(filters);
   }
-  suspendUser(d) {
-    return adminUsersService.suspendUser(d);
+  suspendUser(data) {
+    return adminUsersService.suspendUser(data);
   }
-  getManagerApplications(f) {
-    return adminApplicationsService.getManagerApplications(f);
+  getManagerApplications(filters) {
+    return adminApplicationsService.getManagerApplications(filters);
   }
   getManagerApplicationById(id) {
     return adminApplicationsService.getManagerApplicationById(id);
   }
-  approveManagerApplication(d) {
-    return adminApplicationsService.approveManagerApplication(d);
+  approveManagerApplication(data) {
+    return adminApplicationsService.approveManagerApplication(data);
   }
-  rejectManagerApplication(d) {
-    return adminApplicationsService.rejectManagerApplication(d);
+  rejectManagerApplication(data) {
+    return adminApplicationsService.rejectManagerApplication(data);
   }
-  getPropertySubmissions(f) {
-    return adminPropertiesService.getPropertySubmissions(f);
+  getPropertySubmissions(filters) {
+    return adminPropertiesService.getPropertySubmissions(filters);
   }
-  approvePropertySubmission(p, r) {
-    return adminPropertiesService.approvePropertySubmission(p, r);
+  approvePropertySubmission(propertyId, reviewerId) {
+    return adminPropertiesService.approvePropertySubmission(
+      propertyId,
+      reviewerId
+    );
   }
-  rejectPropertySubmission(d) {
-    return adminPropertiesService.rejectPropertySubmission(d);
+  rejectPropertySubmission(data) {
+    return adminPropertiesService.rejectPropertySubmission(data);
   }
-  suspendProperty(d) {
-    return adminPropertiesService.suspendProperty(d);
+  suspendProperty(data) {
+    return adminPropertiesService.suspendProperty(data);
   }
   getIncomePerProperty() {
     return adminIncomeService.getIncomePerProperty();
