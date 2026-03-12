@@ -164,8 +164,8 @@ class RentalService {
           quantity: 1,
         },
       ],
-      success_url: `http://localhost:${ENV.PORT}/api/v1/user/payment-success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `http://localhost:${ENV.PORT}/api/v1/user/payment-cancelled`,
+      success_url: `http://localhost:${ENV.PORT}/payment/success?session_id={CHECKOUT_SESSION_ID}`,
+      cancel_url: `http://localhost:${ENV.PORT}/payment/cancel`,
       metadata: {
         payment_id: invoice.id,
         rental_id: invoice.rental_id,
