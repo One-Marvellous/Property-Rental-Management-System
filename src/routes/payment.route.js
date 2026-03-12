@@ -2,7 +2,10 @@ import { Router } from 'express';
 import paymentController from '../controllers/payment.controller.js';
 import express from 'express';
 import { zodValidation } from '../middlewares/zodValidation.middleware.js';
-import { sessionIdParamValidator } from '../validators/payment.validators.js';
+import {
+  sessionIdParamValidator,
+  paymentIdParamValidator,
+} from '../validators/payment.validators.js';
 
 const router = Router();
 
@@ -14,7 +17,7 @@ router.post(
 
 router.post(
   '/verify/:id',
-  zodValidation(sessionIdParamValidator),
+  zodValidation(paymentIdParamValidator),
   paymentController.verifyPayment
 );
 

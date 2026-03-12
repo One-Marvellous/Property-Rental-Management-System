@@ -79,7 +79,8 @@ class AdminPropertiesService {
       data: {
         approval_status: property_approval_status.rejected,
         rejection_reason: rejectionReason,
-        approved_by: reviewerId,
+        rejected_by: reviewerId,
+        rejected_at: new Date(),
       },
     });
   }
@@ -100,7 +101,8 @@ class AdminPropertiesService {
       where: { id: propertyId },
       data: {
         approval_status: property_approval_status.suspended,
-        approved_by: reviewerId,
+        suspended_by: reviewerId,
+        suspended_at: new Date(),
       },
     });
   }
