@@ -10,6 +10,7 @@ import {
 } from '../../utils/pagination.js';
 import { OrderStatus } from '../../models/order.js';
 import { ENV } from '../../config/env.js';
+import { user_status } from '../../generated/prisma/index.js';
 
 class AdminUsersService {
   async getAllUsers(filters) {
@@ -49,12 +50,12 @@ class AdminUsersService {
     if (!user) throw new NotFoundError('User');
     if (user.id === adminId)
       throw new BadRequestError('Admins cannot suspend their own account');
-    if (user.is_suspended === true)
+    if (user.status === user_status.suspended)
       throw new ConflictError('User is already suspended');
 
     await prisma.users.update({
       where: { id: userId },
-      data: { is_suspended: true },
+      data: { status: user_status.suspended },
     });
   }
 }

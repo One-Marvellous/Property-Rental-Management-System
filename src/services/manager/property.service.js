@@ -72,6 +72,13 @@ class ManagerPropertyService {
       where: { id: propertyId, manager_id: userId },
       data: {
         approval_status: property_approval_status.pending,
+        approved_by: null,
+        approved_at: null,
+        rejected_by: null,
+        rejected_at: null,
+        rejection_reason: null,
+        suspended_by: null,
+        suspended_at: null,
       },
       omit: {
         approval_status: true,
