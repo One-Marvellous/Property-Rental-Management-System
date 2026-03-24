@@ -460,7 +460,7 @@ For issues, questions, or contributions, please open an issue or contact the dev
 **Contributors**
 
 - Damilola Adegbite — https://github.com/dax-side
-- John Oluwatobi — https://github.com/JOHNNY-OBA
+- John Oloruntobi — https://github.com/JOHNNY-OBA
 - Sunday Alabi — https://github.com/iamalabisunday
 - Eliot — https://github.com/kingx7-cyber
 - Olofintila Ayomide — https://github.com/olofus0204
